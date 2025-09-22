@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/stumble/dcache"
 )
@@ -46,11 +47,11 @@ func (c *Cache) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (c *Cache) HealthCheck(ctx context.Context) error {
+func (c *Cache) OK(ctx context.Context) error {
 	if c.dCache != nil {
 		err := c.dCache.Ping(ctx)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "dcache health check failed")
 		}
 	}
 	return nil

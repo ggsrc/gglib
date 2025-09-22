@@ -13,10 +13,6 @@ type WPGX struct {
 	once       sync.Once
 }
 
-func init() {
-	_ = wpgx.NewPool // 假设 goodns 暴露 Version 常量；随便用一个导出符号
-}
-
 func NewWPGX(configOpts ...ConfigOption) *WPGX {
 	return &WPGX{
 		configOpts: configOpts,
@@ -42,7 +38,7 @@ func (w *WPGX) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (w *WPGX) HealthCheck(ctx context.Context) error {
+func (w *WPGX) OK(ctx context.Context) error {
 	if w.pool != nil {
 		return w.pool.Ping(ctx)
 	}

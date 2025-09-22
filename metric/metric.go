@@ -1,11 +1,13 @@
 package metric
 
 import (
+	"context"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"sort"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -20,7 +22,9 @@ type MetricEvent struct {
 }
 
 type Server struct {
-	conf *Config
+	conf       *Config
+	httpServer *http.Server
+	errCh      chan error
 }
 
 type Config struct {
@@ -35,7 +39,7 @@ func New(conf *Config) *Server {
 	return &Server{conf: conf}
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	server := &http.Server{
@@ -43,7 +47,28 @@ func (s *Server) Start() error {
 		Handler:           mux,
 		ReadHeaderTimeout: time.Second * 5,
 	}
-	return server.ListenAndServe()
+	s.httpServer = server
+	s.errCh = make(chan error)
+	go func() {
+		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			s.errCh <- err
+		}
+		close(s.errCh)
+	}()
+	return nil
+}
+
+func (s *Server) Stop(ctx context.Context) error {
+	return s.httpServer.Shutdown(ctx)
+}
+
+func (s *Server) OK(ctx context.Context) error {
+	select {
+	case err := <-s.errCh:
+		return err
+	default:
+		return nil
+	}
 }
 
 // RecordEvent auto register counter

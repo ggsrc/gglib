@@ -42,7 +42,7 @@ func (h *Hatchet) Stop(ctx context.Context) error {
 	return h.workerCleanupFunction()
 }
 
-func (h *Hatchet) HealthCheck(ctx context.Context) error {
+func (h *Hatchet) OK(ctx context.Context) error {
 	return nil
 }
 
