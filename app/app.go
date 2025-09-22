@@ -22,15 +22,17 @@ var (
 type App struct {
 	grpcServer      *grpc.Server
 	healthChecker   *health.Server
-	metricer        *metric.Server
+	metricServer    *metric.Server
 	resourceManager resource.ResourceManager
 }
 
 func NewApp(grpcServer *grpc.Server, resourceManager resource.ResourceManager) *App {
+	metricServer := metric.New(nil)
+	healthChecker := health.InitHealthCheck(resourceManager, metricServer)
 	return &App{
 		grpcServer:      grpcServer,
-		healthChecker:   health.InitHealthCheck(resourceManager),
-		metricer:        metric.New(nil),
+		healthChecker:   healthChecker,
+		metricServer:    metricServer,
 		resourceManager: resourceManager,
 	}
 }
@@ -42,9 +44,9 @@ func (a *App) Start(ctx context.Context) error {
 		make(chan error, 1),
 		make(chan error, 1),
 		make(chan error, 1),
-		make(chan error, 1),
+		make(chan error, 1)
 
-		wg.Add(1)
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		if a.grpcServer != nil {
@@ -74,9 +76,9 @@ func (a *App) Start(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if a.metricer != nil {
+		if a.metricServer != nil {
 			log.Warn().Msg("Metricer start")
-			metricErrCh <- a.metricer.Start()
+			metricErrCh <- a.metricServer.Start()
 		}
 	}()
 
@@ -135,8 +137,8 @@ func (a *App) Stop(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if a.metricer != nil {
-			a.metricer.Start()
+		if a.metricServer != nil {
+			a.metricServer.Start()
 			log.Ctx(ctx).Error().Msg("failed to shutdown metricer")
 		}
 	}()
