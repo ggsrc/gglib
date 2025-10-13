@@ -60,6 +60,10 @@ func (h *Hatchet) OK(ctx context.Context) error {
 	return nil
 }
 
+func (h *Hatchet) Name() string {
+	return "hatchet"
+}
+
 func (h *Hatchet) GetHatchetWorker() hatchetworker.Worker {
 	return h.hatchetWorker
 }
