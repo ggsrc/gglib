@@ -3,11 +3,11 @@ module github.com/ggsrc/gglib/app
 go 1.24.7
 
 require (
-	github.com/ggsrc/gglib/grpc v0.0.0-20250922023448-5371f4e96798
-	github.com/ggsrc/gglib/health v0.0.0-20250922023448-5371f4e96798
-	github.com/ggsrc/gglib/metric v0.0.0-20250922023448-5371f4e96798
-	github.com/ggsrc/gglib/resource v0.0.0-20250922023448-5371f4e96798
-	github.com/ggsrc/gglib/zerolog v0.0.0-20250922023448-5371f4e96798
+	github.com/ggsrc/gglib/grpc v0.0.0-20251013032453-2c7a3f01757b
+	github.com/ggsrc/gglib/health v0.0.0-20251013032453-2c7a3f01757b
+	github.com/ggsrc/gglib/metric v0.0.0-20251013032453-2c7a3f01757b
+	github.com/ggsrc/gglib/resource v0.0.0-20251013032453-2c7a3f01757b
+	github.com/ggsrc/gglib/zerolog v0.0.0-20251013032453-2c7a3f01757b
 )
 
 require (
@@ -37,6 +37,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.20.2 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
