@@ -44,14 +44,14 @@ func (c *Cache) Start(ctx context.Context) error {
 }
 
 func (c *Cache) Stop(ctx context.Context) error {
+	if c.dCache != nil {
+		c.dCache.Close()
+	}
 	if c.redisClient != nil {
 		err := c.redisClient.Close()
 		if err != nil {
 			return err
 		}
-	}
-	if c.dCache != nil {
-		c.dCache.Close()
 	}
 	return nil
 }
