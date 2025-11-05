@@ -13,11 +13,21 @@ type WPGX struct {
 	pool        *wpgx.Pool
 	configOpts  []ConfigOption
 	once        sync.Once
+	config      *wpgx.Config
 }
 
 func NewWPGX(configOpts ...ConfigOption) *WPGX {
+	cfg := wpgx.ConfigFromEnvPrefix("postgres")
+	return NewWPGXWithConfig(cfg, configOpts...)
+}
+
+func NewWPGXWithConfig(cfg *wpgx.Config, configOpts ...ConfigOption) *WPGX {
+	if cfg == nil {
+		panic("cfg cannot be nil")
+	}
 	return &WPGX{
 		configOpts: configOpts,
+		config:     cfg,
 	}
 }
 
@@ -28,7 +38,7 @@ func (w *WPGX) Name() string {
 func (w *WPGX) Init(ctx context.Context) error {
 	var err error
 	w.once.Do(func() {
-		w.pool, err = newWPGXPool(ctx, "postgres", w.configOpts...)
+		w.pool, err = w.newWPGXPool(ctx)
 	})
 	w.initialized = true
 	return err
