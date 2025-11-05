@@ -42,8 +42,8 @@ func (c *Cache) Name() string {
 }
 
 func (c *Cache) Init(ctx context.Context) error {
-	c.redisClient = newRedisClientWithConfig(c.redisConfig)
-	dCache, err := newDCacheWithConfig(c.appName, c.dCacheConfig, c.redisClient)
+	c.redisClient = c.newRedisClientWithConfig()
+	dCache, err := c.newDCacheWithConfig()
 	if err != nil {
 		return err
 	}

@@ -13,7 +13,8 @@ import (
 	mask "github.com/showa-93/go-mask"
 )
 
-func newRedisClientWithConfig(c *RedisConfig) redis.UniversalClient {
+func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
+	c := cache.redisConfig
 	masker := mask.NewMasker()
 	masker.RegisterMaskStringFunc(mask.MaskTypeFilled, masker.MaskFilledString)
 	masker.RegisterMaskStringFunc(mask.MaskTypeFixed, masker.MaskFixedString)
