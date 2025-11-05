@@ -35,7 +35,7 @@ func (w *WPGX) Name() string {
 func (w *WPGX) Init(ctx context.Context) error {
 	var err error
 	w.once.Do(func() {
-		w.pool, err = newWPGXPool(ctx, w.config)
+		w.pool, err = newWPGXPool(ctx, w.config, w.configOpts...)
 	})
 	w.initialized = true
 	return err

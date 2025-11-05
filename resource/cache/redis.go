@@ -18,7 +18,7 @@ func newRedisClientWithConfig(c *RedisConfig) redis.UniversalClient {
 	masker.RegisterMaskStringFunc(mask.MaskTypeFilled, masker.MaskFilledString)
 	masker.RegisterMaskStringFunc(mask.MaskTypeFixed, masker.MaskFixedString)
 
-	conf, _ := masker.Mask(*c)
+	conf, _ := masker.Mask(c)
 	log.Warn().Msgf("Redis Config: %+v", conf)
 
 	var redisClient redis.UniversalClient
