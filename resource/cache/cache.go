@@ -27,6 +27,9 @@ func NewCache(appName string) *Cache {
 }
 
 func NewCacheWithConfig(appName string, redisCfg *RedisConfig, dcacheCfg *DCacheConfig) *Cache {
+	if redisCfg == nil || dcacheCfg == nil {
+		panic("cfg cannot be nil")
+	}
 	return &Cache{
 		appName:      appName,
 		redisConfig:  redisCfg,

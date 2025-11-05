@@ -22,6 +22,9 @@ func NewWPGX(configOpts ...ConfigOption) *WPGX {
 }
 
 func NewWPGXWithConfig(cfg *wpgx.Config, configOpts ...ConfigOption) *WPGX {
+	if cfg == nil {
+		panic("cfg cannot be nil")
+	}
 	return &WPGX{
 		configOpts: configOpts,
 		config:     cfg,
