@@ -7,8 +7,9 @@ import (
 	"github.com/stumble/wpgx"
 )
 
-func newWPGXPool(ctx context.Context, c *wpgx.Config, configOpts ...ConfigOption) (*wpgx.Pool, error) {
-	for _, opt := range configOpts {
+func (w *WPGX) newWPGXPool(ctx context.Context) (*wpgx.Pool, error) {
+	c := w.config
+	for _, opt := range w.configOpts {
 		opt(c)
 	}
 	log.Ctx(ctx).Warn().Msgf("WPGX Config: %+v", &c)
