@@ -7,21 +7,18 @@ import (
 	"time"
 
 	"github.com/ggsrc/gglib/goodns"
-	"github.com/kelseyhightower/envconfig"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	mask "github.com/showa-93/go-mask"
 )
 
-func newRedisClient(envPrefix string) redis.UniversalClient {
+func newRedisClientWithConfig(c *RedisConfig) redis.UniversalClient {
 	masker := mask.NewMasker()
 	masker.RegisterMaskStringFunc(mask.MaskTypeFilled, masker.MaskFilledString)
 	masker.RegisterMaskStringFunc(mask.MaskTypeFixed, masker.MaskFixedString)
 
-	c := RedisConfig{}
-	envconfig.MustProcess(envPrefix, &c)
-	conf, _ := masker.Mask(c)
+	conf, _ := masker.Mask(*c)
 	log.Warn().Msgf("Redis Config: %+v", conf)
 
 	var redisClient redis.UniversalClient

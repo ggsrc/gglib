@@ -3,21 +3,34 @@ package cache
 import (
 	"context"
 
+	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/stumble/dcache"
 )
 
 type Cache struct {
-	initialized bool
-	appName     string
-	redisClient redis.UniversalClient
-	dCache      *dcache.DCache
+	initialized  bool
+	appName      string
+	redisClient  redis.UniversalClient
+	dCache       *dcache.DCache
+	redisConfig  *RedisConfig
+	dCacheConfig *DCacheConfig
 }
 
 func NewCache(appName string) *Cache {
+	redisCfg := RedisConfig{}
+	envconfig.MustProcess("redis", &redisCfg)
+	dcacheCfg := DCacheConfig{}
+	envconfig.MustProcess("dcache", &dcacheCfg)
+	return NewCacheWithConfig(appName, &redisCfg, &dcacheCfg)
+}
+
+func NewCacheWithConfig(appName string, redisCfg *RedisConfig, dcacheCfg *DCacheConfig) *Cache {
 	return &Cache{
-		appName: appName,
+		appName:      appName,
+		redisConfig:  redisCfg,
+		dCacheConfig: dcacheCfg,
 	}
 }
 
@@ -26,8 +39,8 @@ func (c *Cache) Name() string {
 }
 
 func (c *Cache) Init(ctx context.Context) error {
-	c.redisClient = newRedisClient("redis")
-	dCache, err := newDCache(c.appName, "dcache", c.redisClient)
+	c.redisClient = newRedisClientWithConfig(c.redisConfig)
+	dCache, err := newDCacheWithConfig(c.appName, c.dCacheConfig, c.redisClient)
 	if err != nil {
 		return err
 	}
