@@ -12,7 +12,7 @@ func (w *WPGX) newWPGXPool(ctx context.Context) (*wpgx.Pool, error) {
 	for _, opt := range w.configOpts {
 		opt(c)
 	}
-	log.Ctx(ctx).Warn().Msgf("WPGX Config: %+v", &c)
+	log.Ctx(ctx).Warn().Msgf("WPGX Config: %+v", c)
 	pool, err := wpgx.NewPool(ctx, c)
 	if err != nil {
 		return nil, err
