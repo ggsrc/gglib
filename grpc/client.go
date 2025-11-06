@@ -17,7 +17,7 @@ import (
 )
 
 type ClientConfig struct {
-	RavenDSN string `default:"https://77f63f901858d8662af2db33c999b6b8@sentry.corp.galxe.com/19"`
+	RavenDSN string `required:"true"`
 	Verbose  bool   `default:"false"`
 }
 
@@ -27,16 +27,18 @@ type Client struct {
 	conf       *ClientConfig
 }
 
-func NewClient(serverName, clientName string, conf *ClientConfig) *Client {
-	if conf == nil {
-		conf = &ClientConfig{}
-		envconfig.MustProcess("grpc", conf)
-	}
+func NewClient(serverName, clientName string, envPrefix string) *Client {
+	conf := &ClientConfig{}
+	envconfig.MustProcess(envPrefix, conf)
 	return &Client{
 		serverName: serverName,
 		clientName: clientName,
 		conf:       conf,
 	}
+}
+
+func NewClientWithDefaultEnvPrefix(serverName, clientName string) *Client {
+	return NewClient(serverName, clientName, "grpc")
 }
 
 func (c *Client) Dial(ctx context.Context, addr string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {

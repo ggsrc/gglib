@@ -47,11 +47,13 @@ type Config struct {
 	Alive         bool          `default:"true"`
 }
 
-func New(conf *Config, httpRouter HttpRouter, hc ...HealthCheckable) *Server {
-	if conf == nil {
-		conf = &Config{}
-		envconfig.MustProcess("healthcheck", conf)
-	}
+func NewWithDefaultEnvPrefix(httpRouter HttpRouter, hc ...HealthCheckable) *Server {
+	return New("healthcheck", httpRouter, hc...)
+}
+
+func New(envPrefix string, httpRouter HttpRouter, hc ...HealthCheckable) *Server {
+	conf := &Config{}
+	envconfig.MustProcess(envPrefix, conf)
 	var hooks []Checkable
 	for _, h := range hc {
 		hooks = append(hooks, h.OK)

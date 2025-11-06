@@ -34,7 +34,7 @@ type ReqCommonParams struct {
 	VersionName      string        `json:"version_name" query:"version_name"`
 	Language         string        `json:"language" query:"language"`
 	Resolution       string        `json:"resolution" query:"resolution"`
-	TimeZoneName     string        `json:"tz_name" query:"tz_name"` // 时区
+	TimeZoneName     string        `json:"tz_name" query:"tz_name"`
 	IP               string        `json:"ip" `
 	RemoteIP         string        `json:"remote_ip"`
 	FP               string        `json:"fp"`
@@ -48,11 +48,11 @@ type ReqCommonParams struct {
 	AppLanguage      string        `json:"app_language"`
 	SysLanguage      string        `json:"sys_language"`
 	AppVersion       string        `json:"app_version"`
-	ReqTime          int64         `json:"req_time"`           // unix时间戳
-	Location         *LocationInfo `json:"location"`           // 位置信息
-	FirstInstallTime int64         `json:"first_install_time"` // device 设备首次安装时间
+	ReqTime          int64         `json:"req_time"`
+	Location         *LocationInfo `json:"location"`
+	FirstInstallTime int64         `json:"first_install_time"`
 	EnterFrom        string        `json:"enter_from"`
-	BuildVersion     string        `json:"build_version"` // 前端代码版本
+	BuildVersion     string        `json:"build_version"`
 
 	Now time.Time `json:"now"`
 }

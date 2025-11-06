@@ -19,9 +19,13 @@ type RateLimitManager struct {
 	conf           *MethodLimitConfig
 }
 
-func NewRateLimitManager() *RateLimitManager {
+func NewRateLimitManagerWithDefaultEnvPrefix() *RateLimitManager {
+	return NewRateLimitManager("ratelimit")
+}
+
+func NewRateLimitManager(envPrefix string) *RateLimitManager {
 	config := &MethodLimitConfig{}
-	envconfig.MustProcess("ratelimit", config)
+	envconfig.MustProcess(envPrefix, config)
 
 	rlm := &RateLimitManager{
 		methodLimitter: make(map[string]*rate.Limiter),

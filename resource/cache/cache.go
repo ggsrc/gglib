@@ -18,11 +18,15 @@ type Cache struct {
 	dCacheConfig *DCacheConfig
 }
 
-func NewCache(appName string) *Cache {
+func NewCacheWithDefaultEnvPrefix(appName string) *Cache {
+	return NewCache(appName, "redis", "dcache")
+}
+
+func NewCache(appName string, redisEnvPrefix string, dcacheEnvPrefix string) *Cache {
 	redisCfg := RedisConfig{}
-	envconfig.MustProcess("redis", &redisCfg)
+	envconfig.MustProcess(redisEnvPrefix, &redisCfg)
 	dcacheCfg := DCacheConfig{}
-	envconfig.MustProcess("dcache", &dcacheCfg)
+	envconfig.MustProcess(dcacheEnvPrefix, &dcacheCfg)
 	return NewCacheWithConfig(appName, &redisCfg, &dcacheCfg)
 }
 

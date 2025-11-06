@@ -24,12 +24,14 @@ type Config struct {
 	HTTPHeaders  map[string]string
 }
 
-func InitProfiler(conf *Config) *Server {
-	if conf == nil {
-		conf = &Config{}
-	}
+func InitProfilerWithDefaultEnvPrefix() *Server {
+	return InitProfiler("profiling")
+}
+
+func InitProfiler(envPrefix string) *Server {
+	conf := &Config{}
 	envConfig := pyroscope.Config{}
-	envconfig.MustProcess("profiling", &envConfig)
+	envconfig.MustProcess(envPrefix, &envConfig)
 	if envConfig.ApplicationName == "" {
 		envConfig.ApplicationName = env.ServiceName()
 	}

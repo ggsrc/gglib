@@ -1,5 +1,7 @@
 package metadata
 
+type contextKey string
+
 const (
 	CTX_KEY_REQUEST_ID     = "rid"
 	CTX_KEY_REQUEST_SOURCE = "request-source"
@@ -10,6 +12,16 @@ const (
 	CTX_KEY_ACCOUNT_TYPE   = "account_type"
 	CTX_KEY_ORIGIN         = "origin"
 	CTX_KEY_APP_CTX        = "app-ctx-bin"
+)
+
+// Context keys for use with context.WithValue
+var (
+	ContextKeyRequestSource = contextKey(CTX_KEY_REQUEST_SOURCE)
+	ContextKeyAccessToken   = contextKey(CTX_KEY_ACCESS_TOKEN)
+	ContextKeyGalxeId       = contextKey(CTX_KEY_GALXE_ID)
+	ContextKeyOrigin        = contextKey(CTX_KEY_ORIGIN)
+	ContextKeyAccountId     = contextKey(CTX_KEY_ACCOUNT_ID)
+	ContextKeyAccountType   = contextKey(CTX_KEY_ACCOUNT_TYPE)
 )
 
 const (

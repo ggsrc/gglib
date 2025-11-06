@@ -31,11 +31,13 @@ type Config struct {
 	Port int `default:"4014"`
 }
 
-func New(conf *Config) *Server {
-	if conf == nil {
-		conf = &Config{}
-		envconfig.MustProcess("metric", conf)
-	}
+func NewWithDefaultEnvPrefix() *Server {
+	return New("metric")
+}
+
+func New(envPrefix string) *Server {
+	conf := &Config{}
+	envconfig.MustProcess(envPrefix, conf)
 	return &Server{conf: conf}
 }
 

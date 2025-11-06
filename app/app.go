@@ -12,6 +12,7 @@ import (
 	"github.com/ggsrc/gglib/health"
 	"github.com/ggsrc/gglib/metric"
 	"github.com/ggsrc/gglib/resource"
+	"github.com/ggsrc/gglib/zerolog"
 	"github.com/ggsrc/gglib/zerolog/log"
 )
 
@@ -20,13 +21,14 @@ var (
 )
 
 type App struct {
+	debug           bool
 	grpcServer      *grpc.Server
 	healthChecker   *health.Server
 	metricServer    *metric.Server
 	resourceManager resource.ResourceManager
 }
 
-func NewApp(grpcServer *grpc.Server, resourceManager resource.ResourceManager) *App {
+func NewApp(debug bool, grpcServer *grpc.Server, resourceManager resource.ResourceManager) *App {
 	metricServer := metric.New(nil)
 	healthChecker := health.InitHealthCheck(resourceManager, metricServer)
 	return &App{
@@ -38,6 +40,7 @@ func NewApp(grpcServer *grpc.Server, resourceManager resource.ResourceManager) *
 }
 
 func (a *App) Start(ctx context.Context) {
+	zerolog.InitLogger(a.debug)
 	var wg sync.WaitGroup
 
 	grpcErrCh, healthErrCh :=

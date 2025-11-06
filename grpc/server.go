@@ -29,7 +29,7 @@ type Server struct {
 type ServerConfig struct {
 	Debug    bool   `default:"false"`
 	Port     int    `default:"9090"`
-	RavenDSN string `default:"https://77f63f901858d8662af2db33c999b6b8@sentry.corp.galxe.com/19"`
+	RavenDSN string `default:""`
 	// LogMasker takes in FullMethod and req as input and returns masked req
 	Verbose bool `default:"false"`
 }
@@ -48,11 +48,13 @@ func WithGRPCServerOptions(opts ...grpc.ServerOption) ServerOption {
 	return func(o *serverOptions) { o.grpcOpts = append(o.grpcOpts, opts...) }
 }
 
-func NewServer(serviceName string, conf *ServerConfig, opts ...ServerOption) *Server {
-	if conf == nil {
-		conf = &ServerConfig{}
-		envconfig.MustProcess("grpc", conf)
-	}
+func NewServerWithDefaultEnvPrefix(serviceName string, opts ...ServerOption) *Server {
+	return NewServer(serviceName, "grpc", opts...)
+}
+
+func NewServer(serviceName string, envPrefix string, opts ...ServerOption) *Server {
+	conf := &ServerConfig{}
+	envconfig.MustProcess(envPrefix, conf)
 	s := &Server{
 		serviceName: serviceName,
 		conf:        conf,
