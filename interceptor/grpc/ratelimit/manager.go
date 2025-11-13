@@ -19,6 +19,14 @@ type RateLimitManager struct {
 	conf           *MethodLimitConfig
 }
 
+func NewRateLimitManagerWithOptions(opts ...Option) *RateLimitManager {
+	conf := &MethodLimitConfig{}
+	for _, opt := range opts {
+		opt(conf)
+	}
+	return &RateLimitManager{conf: conf}
+}
+
 func NewRateLimitManagerWithDefaultEnvPrefix() *RateLimitManager {
 	return NewRateLimitManager("ratelimit")
 }

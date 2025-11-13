@@ -31,6 +31,14 @@ type Config struct {
 	Port int `default:"4014"`
 }
 
+func NewWithOptions(opts ...Option) *Server {
+	conf := &Config{}
+	for _, opt := range opts {
+		opt(conf)
+	}
+	return &Server{conf: conf}
+}
+
 func NewWithDefaultEnvPrefix() *Server {
 	return New("metric")
 }

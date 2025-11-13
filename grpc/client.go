@@ -22,23 +22,43 @@ type ClientConfig struct {
 }
 
 type Client struct {
-	serverName string
-	clientName string
-	conf       *ClientConfig
+	conf *ClientConfig
 }
 
-func NewClient(serverName, clientName string, envPrefix string) *Client {
-	conf := &ClientConfig{}
-	envconfig.MustProcess(envPrefix, conf)
-	return &Client{
-		serverName: serverName,
-		clientName: clientName,
-		conf:       conf,
+type Option func(*ClientConfig)
+
+func WithRavenDSN(ravenDSN string) Option {
+	return func(c *ClientConfig) {
+		c.RavenDSN = ravenDSN
 	}
 }
 
-func NewClientWithDefaultEnvPrefix(serverName, clientName string) *Client {
-	return NewClient(serverName, clientName, "grpc")
+func WithVerbose(verbose bool) Option {
+	return func(c *ClientConfig) {
+		c.Verbose = verbose
+	}
+}
+
+func NewClientWithOptions(opts ...Option) *Client {
+	conf := &ClientConfig{}
+	for _, opt := range opts {
+		opt(conf)
+	}
+	return &Client{
+		conf: conf,
+	}
+}
+
+func NewClient(envPrefix string) *Client {
+	conf := &ClientConfig{}
+	envconfig.MustProcess(envPrefix, conf)
+	return &Client{
+		conf: conf,
+	}
+}
+
+func NewClientWithDefaultEnvPrefix() *Client {
+	return NewClient("grpc")
 }
 
 func (c *Client) Dial(ctx context.Context, addr string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {

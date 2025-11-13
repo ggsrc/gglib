@@ -20,9 +20,7 @@ import (
 )
 
 type Server struct {
-	serviceName string
-	conf        *ServerConfig
-
+	conf   *ServerConfig
 	server *grpc.Server
 }
 
@@ -32,32 +30,30 @@ type ServerConfig struct {
 	RavenDSN string `default:""`
 	// LogMasker takes in FullMethod and req as input and returns masked req
 	Verbose bool `default:"false"`
+
+	UnaryInterceptors []grpc.UnaryServerInterceptor
+	GRPCServerOptions []grpc.ServerOption
 }
 
-type ServerOption func(*serverOptions)
-type serverOptions struct {
-	extraUnary []grpc.UnaryServerInterceptor
-	grpcOpts   []grpc.ServerOption
+func NewServerWithOptions(opts ...ServerOption) *Server {
+	conf := &ServerConfig{}
+	for _, opt := range opts {
+		opt(conf)
+	}
+	return &Server{
+		conf: conf,
+	}
 }
 
-func WithUnaryInterceptors(ii ...grpc.UnaryServerInterceptor) ServerOption {
-	return func(o *serverOptions) { o.extraUnary = append(o.extraUnary, ii...) }
+func NewServerWithDefaultEnvPrefix() *Server {
+	return NewServer("grpc")
 }
 
-func WithGRPCServerOptions(opts ...grpc.ServerOption) ServerOption {
-	return func(o *serverOptions) { o.grpcOpts = append(o.grpcOpts, opts...) }
-}
-
-func NewServerWithDefaultEnvPrefix(serviceName string, opts ...ServerOption) *Server {
-	return NewServer(serviceName, "grpc", opts...)
-}
-
-func NewServer(serviceName string, envPrefix string, opts ...ServerOption) *Server {
+func NewServer(envPrefix string, opts ...ServerOption) *Server {
 	conf := &ServerConfig{}
 	envconfig.MustProcess(envPrefix, conf)
 	s := &Server{
-		serviceName: serviceName,
-		conf:        conf,
+		conf: conf,
 	}
 
 	logger := zerolog.DefaultContextLogger
@@ -71,9 +67,8 @@ func NewServer(serviceName string, envPrefix string, opts ...ServerOption) *Serv
 		loggableEvents = append(loggableEvents, logging.FinishCall)
 	}
 
-	so := &serverOptions{}
-	for _, o := range opts {
-		o(so)
+	for _, opt := range opts {
+		opt(conf)
 	}
 
 	interceptors := []grpc.UnaryServerInterceptor{
@@ -87,14 +82,14 @@ func NewServer(serviceName string, envPrefix string, opts ...ServerOption) *Serv
 		interceptors = append(interceptors, loginterceptor.LogUnaryServerInterceptor())
 	}
 
-	interceptors = append(interceptors, so.extraUnary...)
+	interceptors = append(interceptors, conf.UnaryInterceptors...)
 
 	defaultOpts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(chainUnaryServer(interceptors...)),
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	}
-	defaultOpts = append(defaultOpts, so.grpcOpts...)
+	defaultOpts = append(defaultOpts, conf.GRPCServerOptions...)
 	s.server = grpc.NewServer(defaultOpts...)
 	grpc_prometheus.Register(s.server)
 	// Prometheus histograms are a great way to measure latency distributions of your RPCs. However,
