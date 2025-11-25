@@ -122,41 +122,9 @@ func GetNumericHash(s string) uint32 {
 	return hash.Sum32()
 }
 
-func GetRequestSource(ctx context.Context) string {
+func GetMetadata(ctx context.Context) string {
 	md := metautils.ExtractIncoming(ctx)
-	return md.Get(metadata.CTX_KEY_REQUEST_SOURCE)
-}
-
-func GetJwtToken(ctx context.Context) string {
-	md := metautils.ExtractIncoming(ctx)
-	return md.Get(metadata.CTX_KEY_JWT_TOKEN)
-}
-
-func GetAccessToken(ctx context.Context) string {
-	md := metautils.ExtractIncoming(ctx)
-	return md.Get(metadata.CTX_KEY_ACCESS_TOKEN)
-}
-
-func GetGalxeId(ctx context.Context) string {
-	md := metautils.ExtractIncoming(ctx)
-	return md.Get(metadata.CTX_KEY_GALXE_ID)
-}
-
-func GetOrigin(ctx context.Context) string {
-	md := metautils.ExtractIncoming(ctx)
-	return md.Get(metadata.CTX_KEY_ORIGIN)
-}
-
-func IsRequestByApp(ctx context.Context) bool {
-	return GetRequestSource(ctx) == metadata.REQUEST_SOURCE_APP
-}
-
-func IsRequestByWeb(ctx context.Context) bool {
-	return GetRequestSource(ctx) == metadata.REQUEST_SOURCE_WEB
-}
-
-func IsRequestByMWeb(ctx context.Context) bool {
-	return GetRequestSource(ctx) == metadata.REQUEST_SOURCE_MWEB
+	return md.Get(metadata.CTX_KEY_METADATA)
 }
 
 // InterceptorLogger adapts zerolog logger to interceptor logger.
