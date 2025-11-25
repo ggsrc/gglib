@@ -26,28 +26,8 @@ func ContextUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			}
 		}
 
-		requestSource := md.Get(pkgmetadata.CTX_KEY_REQUEST_SOURCE)
-		ctx = context.WithValue(ctx, pkgmetadata.ContextKeyRequestSource, requestSource)
-
-		// set access token
-		accessToken := md.Get(pkgmetadata.CTX_KEY_ACCESS_TOKEN)
-		ctx = context.WithValue(ctx, pkgmetadata.ContextKeyAccessToken, accessToken)
-
-		// set galxeId
-		galxeId := md.Get(pkgmetadata.CTX_KEY_GALXE_ID)
-		ctx = context.WithValue(ctx, pkgmetadata.ContextKeyGalxeId, galxeId)
-
-		// set origin
-		origin := md.Get(pkgmetadata.CTX_KEY_ORIGIN)
-		ctx = context.WithValue(ctx, pkgmetadata.ContextKeyOrigin, origin)
-
-		// set account
-		accountId := md.Get(pkgmetadata.CTX_KEY_ACCOUNT_ID)
-		ctx = context.WithValue(ctx, pkgmetadata.ContextKeyAccountId, accountId)
-
-		// set account type
-		accountType := md.Get(pkgmetadata.CTX_KEY_ACCOUNT_TYPE)
-		ctx = context.WithValue(ctx, pkgmetadata.ContextKeyAccountType, accountType)
+		metadata := md.Get(pkgmetadata.CTX_KEY_METADATA)
+		ctx = context.WithValue(ctx, pkgmetadata.ContextKeyMetadata, metadata)
 
 		ret, err := handler(ctx, req)
 		return ret, err

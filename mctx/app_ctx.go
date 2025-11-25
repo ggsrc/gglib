@@ -21,38 +21,38 @@ type ReqCommonParams struct {
 	AppID   int32  `json:"aid"`
 	AppName string `json:"app_name"`
 
-	DeviceID         string        `json:"device_id"`
-	InstallID        int64         `json:"iid"`
-	Channel          string        `json:"channel"`
-	DevicePlatform   string        `json:"device_platform" query:"device_platform"`
-	DeviceType       string        `json:"device_type" query:"device_type"`
-	DeviceBrand      string        `json:"device_brand" query:"device_brand"`
-	AC               string        `json:"ac" query:"ac"`
-	OSAPI            int32         `json:"os_api" query:"os_api"`
-	OSVersion        string        `json:"os_version" query:"os_version"`
-	VersionCode      string        `json:"version_code" query:"version_code"`
-	VersionName      string        `json:"version_name" query:"version_name"`
-	Language         string        `json:"language" query:"language"`
-	Resolution       string        `json:"resolution" query:"resolution"`
-	TimeZoneName     string        `json:"tz_name" query:"tz_name"`
-	IP               string        `json:"ip" `
-	RemoteIP         string        `json:"remote_ip"`
-	FP               string        `json:"fp"`
-	UtmSource        string        `json:"utm_source"`
-	UtmMedium        string        `json:"utm_medium"`
-	UtmCampaign      string        `json:"utm_campaign"`
-	Idfa             string        `json:"idfa"`
-	Forwarded        string        `json:"forwarded"`
-	AppRegion        string        `json:"app_region"`
-	SysRegion        string        `json:"sys_region"`
-	AppLanguage      string        `json:"app_language"`
-	SysLanguage      string        `json:"sys_language"`
-	AppVersion       string        `json:"app_version"`
-	ReqTime          int64         `json:"req_time"`
-	Location         *LocationInfo `json:"location"`
-	FirstInstallTime int64         `json:"first_install_time"`
-	EnterFrom        string        `json:"enter_from"`
-	BuildVersion     string        `json:"build_version"`
+	DeviceID         string        `json:"device_id,omitempty"`
+	InstallID        int64         `json:"iid,omitempty"`
+	Channel          string        `json:"channel,omitempty"`
+	DevicePlatform   string        `json:"device_platform,omitempty"    query:"device_platform"`
+	DeviceType       string        `json:"device_type,omitempty"        query:"device_type"`
+	DeviceBrand      string        `json:"device_brand,omitempty"       query:"device_brand"`
+	AC               string        `json:"ac,omitempty"                 query:"ac"`
+	OSAPI            int32         `json:"os_api,omitempty"             query:"os_api"`
+	OSVersion        string        `json:"os_version,omitempty"         query:"os_version"`
+	VersionCode      string        `json:"version_code,omitempty"       query:"version_code"`
+	VersionName      string        `json:"version_name,omitempty"       query:"version_name"`
+	Language         string        `json:"language,omitempty"           query:"language"`
+	Resolution       string        `json:"resolution,omitempty"         query:"resolution"`
+	TimeZoneName     string        `json:"tz_name,omitempty"            query:"tz_name"`
+	IP               string        `json:"ip,omitempty"`
+	RemoteIP         string        `json:"remote_ip,omitempty"`
+	FP               string        `json:"fp,omitempty"`
+	UtmSource        string        `json:"utm_source,omitempty"`
+	UtmMedium        string        `json:"utm_medium,omitempty"`
+	UtmCampaign      string        `json:"utm_campaign,omitempty"`
+	Idfa             string        `json:"idfa,omitempty"`
+	Forwarded        string        `json:"forwarded,omitempty"`
+	AppRegion        string        `json:"app_region,omitempty"`
+	SysRegion        string        `json:"sys_region,omitempty"`
+	AppLanguage      string        `json:"app_language,omitempty"`
+	SysLanguage      string        `json:"sys_language,omitempty"`
+	AppVersion       string        `json:"app_version,omitempty"`
+	ReqTime          int64         `json:"req_time,omitempty"`
+	Location         *LocationInfo `json:"location,omitempty"`
+	FirstInstallTime int64         `json:"first_install_time,omitempty"`
+	EnterFrom        string        `json:"enter_from,omitempty"`
+	BuildVersion     string        `json:"build_version,omitempty"`
 
 	Now time.Time `json:"now"`
 }
