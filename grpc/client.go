@@ -17,29 +17,15 @@ import (
 )
 
 type ClientConfig struct {
-	RavenDSN string `required:"true"`
-	Verbose  bool   `default:"false"`
+	Verbose      bool `default:"false"`
+	panicHandler recoveryinterceptor.PanicHandler
 }
 
 type Client struct {
 	conf *ClientConfig
 }
 
-type Option func(*ClientConfig)
-
-func WithRavenDSN(ravenDSN string) Option {
-	return func(c *ClientConfig) {
-		c.RavenDSN = ravenDSN
-	}
-}
-
-func WithVerbose(verbose bool) Option {
-	return func(c *ClientConfig) {
-		c.Verbose = verbose
-	}
-}
-
-func NewClientWithOptions(opts ...Option) *Client {
+func NewClientWithOptions(opts ...ClientOption) *Client {
 	conf := &ClientConfig{}
 	for _, opt := range opts {
 		opt(conf)
@@ -61,7 +47,11 @@ func NewClientWithDefaultEnvPrefix() *Client {
 	return NewClient("grpc")
 }
 
-func (c *Client) Dial(ctx context.Context, addr string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
+func (c *Client) Dial(
+	ctx context.Context,
+	addr string,
+	opts ...grpc.DialOption,
+) (conn *grpc.ClientConn, err error) {
 	logger := zerolog.DefaultContextLogger
 	if logger == nil {
 		logger = zerolog.Ctx(ctx)
@@ -76,9 +66,12 @@ func (c *Client) Dial(ctx context.Context, addr string, opts ...grpc.DialOption)
 	defaultOpts := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
 		grpc.WithUnaryInterceptor(chainUnaryClient(
-			recoveryinterceptor.SentryUnaryClientInterceptor(c.conf.RavenDSN),
+			recoveryinterceptor.UnaryClientInterceptor(c.conf.panicHandler),
 			contextinterceptor.ContextUnaryClientInterceptor(),
-			logging.UnaryClientInterceptor(InterceptorLogger(*logger), logging.WithLogOnEvents(loggableEvents...)),
+			logging.UnaryClientInterceptor(
+				InterceptorLogger(*logger),
+				logging.WithLogOnEvents(loggableEvents...),
+			),
 			grpc_prometheus.UnaryClientInterceptor,
 		)),
 
@@ -105,10 +98,23 @@ func chainUnaryClient(interceptors ...grpc.UnaryClientInterceptor) grpc.UnaryCli
 
 			chainHandler = func(currentCtx context.Context, currentMethod string, currentReq, currentRepl interface{}, currentConn *grpc.ClientConn, currentOpts ...grpc.CallOption) error {
 				if curI == lastI {
-					return invoker(currentCtx, currentMethod, currentReq, currentRepl, currentConn, currentOpts...)
+					return invoker(
+						currentCtx,
+						currentMethod,
+						currentReq,
+						currentRepl,
+						currentConn,
+						currentOpts...)
 				}
 				curI++
-				err := interceptors[curI](currentCtx, currentMethod, currentReq, currentRepl, currentConn, chainHandler, currentOpts...)
+				err := interceptors[curI](
+					currentCtx,
+					currentMethod,
+					currentReq,
+					currentRepl,
+					currentConn,
+					chainHandler,
+					currentOpts...)
 				curI--
 				return err
 			}

@@ -25,12 +25,13 @@ type Server struct {
 }
 
 type ServerConfig struct {
-	Debug    bool   `default:"false"`
-	Port     int    `default:"9090"`
-	RavenDSN string `default:""`
+	Debug bool `default:"false"`
+	Port  int  `default:"9090"`
+
 	// LogMasker takes in FullMethod and req as input and returns masked req
 	Verbose bool `default:"false"`
 
+	panicHandler      recoveryinterceptor.PanicHandler
 	UnaryInterceptors []grpc.UnaryServerInterceptor
 	GRPCServerOptions []grpc.ServerOption
 }
@@ -72,8 +73,11 @@ func NewServer(envPrefix string, opts ...ServerOption) *Server {
 	}
 
 	interceptors := []grpc.UnaryServerInterceptor{
-		recoveryinterceptor.SentryUnaryServerInterceptor(conf.RavenDSN),
-		logging.UnaryServerInterceptor(InterceptorLogger(*logger), logging.WithLogOnEvents(loggableEvents...)),
+		recoveryinterceptor.UnaryServerInterceptor(conf.panicHandler),
+		logging.UnaryServerInterceptor(
+			InterceptorLogger(*logger),
+			logging.WithLogOnEvents(loggableEvents...),
+		),
 		grpc_prometheus.UnaryServerInterceptor,
 		contextinterceptor.ContextUnaryServerInterceptor(),
 	}

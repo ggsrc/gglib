@@ -1,15 +1,14 @@
 package grpc
 
-import "google.golang.org/grpc"
+import (
+	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
+	"google.golang.org/grpc"
+)
 
-type ClientOption func(*ClientConfig)
-type ServerOption func(*ServerConfig)
-
-func WithClientRavenDSN(ravenDSN string) ClientOption {
-	return func(c *ClientConfig) {
-		c.RavenDSN = ravenDSN
-	}
-}
+type (
+	ClientOption func(*ClientConfig)
+	ServerOption func(*ServerConfig)
+)
 
 func WithClientVerbose(verbose bool) ClientOption {
 	return func(c *ClientConfig) {
@@ -17,9 +16,9 @@ func WithClientVerbose(verbose bool) ClientOption {
 	}
 }
 
-func WithServerRavenDSN(ravenDSN string) ServerOption {
-	return func(c *ServerConfig) {
-		c.RavenDSN = ravenDSN
+func WithClientPanicHandler(panicHandler recoveryinterceptor.PanicHandler) ClientOption {
+	return func(c *ClientConfig) {
+		c.panicHandler = panicHandler
 	}
 }
 
@@ -38,6 +37,12 @@ func WithServerDebug(debug bool) ServerOption {
 func WithServerPort(port int) ServerOption {
 	return func(c *ServerConfig) {
 		c.Port = port
+	}
+}
+
+func WithServerPanicHandler(panicHandler recoveryinterceptor.PanicHandler) ServerOption {
+	return func(c *ServerConfig) {
+		c.panicHandler = panicHandler
 	}
 }
 

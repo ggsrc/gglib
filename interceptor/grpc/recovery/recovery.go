@@ -12,19 +12,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 
-	"github.com/ggsrc/gglib/env"
 	"github.com/ggsrc/gglib/interceptor/grpc/errors"
 	"github.com/ggsrc/gglib/zerolog/log"
 )
 
-const RecoverLogKey = "khturNQNRuAJ"
+type PanicHandler func(ctx context.Context, method string, r any, stack []byte)
 
-func SentryUnaryServerInterceptor(ravenDSN string) grpc.UnaryServerInterceptor {
-	err := sentry.Init(sentry.ClientOptions{Dsn: ravenDSN})
-	if err != nil {
-		log.Err(err).Msg("sentry init failed, ignore it and continue...")
-	}
-
+func UnaryServerInterceptor(panicHandler PanicHandler) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -33,8 +27,9 @@ func SentryUnaryServerInterceptor(ravenDSN string) grpc.UnaryServerInterceptor {
 					Err(fmt.Errorf("[panic] %v", r)).
 					Msgf("%s grpc server panic", strings.Trim(info.FullMethod, "/"))
 				err = fmt.Errorf("server Internal Error")
-				hub := sentry.CurrentHub()
-				hub.Recover(r)
+				if panicHandler != nil {
+					panicHandler(ctx, info.FullMethod, r, debug.Stack())
+				}
 			}
 		}()
 
@@ -64,12 +59,8 @@ func SentryUnaryServerInterceptor(ravenDSN string) grpc.UnaryServerInterceptor {
 	}
 }
 
-func SentryUnaryClientInterceptor(ravenDSN string) grpc.UnaryClientInterceptor {
-	err := sentry.Init(sentry.ClientOptions{Dsn: ravenDSN, Environment: env.Env()})
-	if err != nil {
-		log.Err(err).Msg("sentry init failed")
-	}
-
+// UnaryClientInterceptor 返回一个通用的 gRPC unary client 拦截器，支持自定义 panic 和 error 处理
+func UnaryClientInterceptor(panicHandler PanicHandler) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -78,6 +69,9 @@ func SentryUnaryClientInterceptor(ravenDSN string) grpc.UnaryClientInterceptor {
 					Err(fmt.Errorf("[panic] %v", r)).
 					Msgf("%s grpc client panic", strings.Trim(method, "/"))
 				err = fmt.Errorf("server Internal Error")
+				if panicHandler != nil {
+					panicHandler(ctx, method, r, debug.Stack())
+				}
 			}
 		}()
 
@@ -86,5 +80,18 @@ func SentryUnaryClientInterceptor(ravenDSN string) grpc.UnaryClientInterceptor {
 			log.Ctx(ctx).Error().Err(err).Msg("grpc client error")
 		}
 		return err
+	}
+}
+
+// SentryPanicHandler 返回一个基于 Sentry 的 panic 处理函数
+func SentryPanicHandler(ravenDSN string) PanicHandler {
+	err := sentry.Init(sentry.ClientOptions{Dsn: ravenDSN})
+	if err != nil {
+		log.Err(err).Msg("sentry init failed, ignore it and continue...")
+	}
+
+	return func(ctx context.Context, method string, r interface{}, stack []byte) {
+		hub := sentry.CurrentHub()
+		hub.Recover(r)
 	}
 }
