@@ -55,7 +55,7 @@ func setupLogger(opts ...LoggerOption) {
 	}
 
 	// Set up error stack marshaler
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack //nolint:reassign // Required for zerolog error stack configuration
 
 	// Create base logger with caller info
 	loggerVal := log.With().Caller().Logger()
@@ -68,7 +68,7 @@ func setupLogger(opts ...LoggerOption) {
 			sdklogs.WithBatcher(
 				exporter,
 				// add following two options to ensure flush
-				//sdklogs.WithBatchTimeout(5*time.Second),
+				// sdklogs.WithBatchTimeout(5*time.Second),
 				sdklogs.WithMaxExportBatchSize(config.batchSize),
 			),
 		)

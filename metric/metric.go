@@ -7,9 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/kelseyhightower/envconfig"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

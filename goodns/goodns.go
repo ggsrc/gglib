@@ -15,7 +15,12 @@ func LookupA(ctx context.Context, domain string, useTCP bool) ([]net.IP, error) 
 }
 
 // LookupAWithServer query with specific dns server
-func LookupAWithServer(ctx context.Context, domain string, dnsServer string, useTCP bool) ([]net.IP, error) {
+func LookupAWithServer(
+	ctx context.Context,
+	domain string,
+	dnsServer string,
+	useTCP bool,
+) ([]net.IP, error) {
 	return queryA(ctx, domain, &dnsServer, useTCP)
 }
 

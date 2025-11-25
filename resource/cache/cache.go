@@ -47,7 +47,9 @@ func NewCacheWithOptions(opts ...Option) *Cache {
 		opt(c)
 	}
 	if c.redisConfig == nil || c.dCacheConfig == nil {
-		panic("redisConfig and dcacheConfig cannot be nil, use WithRedisConfig/WithRedisEnvPrefix and WithDCacheConfig/WithDCacheEnvPrefix")
+		panic(
+			"redisConfig and dcacheConfig cannot be nil, use WithRedisConfig/WithRedisEnvPrefix and WithDCacheConfig/WithDCacheEnvPrefix",
+		)
 	}
 	if c.appName == "" {
 		panic("appName cannot be empty, use WithAppName")

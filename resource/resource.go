@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-
 	"golang.org/x/sync/errgroup"
 )
 
@@ -69,7 +68,7 @@ func (rm *resourceManager) Start(ctx context.Context) error {
 	}
 
 	if err := g.Wait(); err != nil {
-		rm.Stop(ctx)
+		_ = rm.Stop(ctx)
 		return err
 	}
 	return nil

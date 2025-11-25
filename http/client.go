@@ -15,9 +15,7 @@ import (
 
 const name = "github.com/ggsrc/httputil"
 
-var (
-	tracer = otel.Tracer(name)
-)
+var tracer = otel.Tracer(name)
 
 type Transport struct {
 	Name  string
@@ -26,8 +24,8 @@ type Transport struct {
 }
 
 func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
-	//ctx := injectRequest(r.Context(), r)
-	//r2 := r.WithContext(ctx)
+	// ctx := injectRequest(r.Context(), r)
+	// r2 := r.WithContext(ctx)
 	if !env.IsStaging() && !t.Debug {
 		return t.RoundTripper.RoundTrip(r)
 	}
@@ -72,7 +70,12 @@ func NewDefaultHttpClient(name string, debug bool) *http.Client {
 	return &http.Client{Transport: NewTransport(name, debug, http.DefaultTransport)}
 }
 
-func NewTransport(name string, debug bool, base http.RoundTripper, opts ...otelhttp.Option) http.RoundTripper {
+func NewTransport(
+	name string,
+	debug bool,
+	base http.RoundTripper,
+	opts ...otelhttp.Option,
+) http.RoundTripper {
 	opts = append([]otelhttp.Option{
 		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
 			return name + " OTEL HTTP " + r.Method

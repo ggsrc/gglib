@@ -1,8 +1,9 @@
 package grpc
 
 import (
-	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 	"google.golang.org/grpc"
+
+	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 )
 
 type (

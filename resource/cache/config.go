@@ -5,7 +5,7 @@ import "time"
 type RedisConfig struct {
 	Host                string        `default:"127.0.0.1"`
 	Port                int           `default:"6379"`
-	Password            string        `default:"" mask:"fixed"`
+	Password            string        `default:""          mask:"fixed"`
 	IsFailover          bool          `default:"false"`
 	IsElastiCache       bool          `default:"false"`
 	IsClusterMode       bool          `default:"false"`
