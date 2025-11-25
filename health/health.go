@@ -2,16 +2,13 @@ package health
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
-	redisV9 "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
-	"github.com/stumble/wpgx"
 )
 
 type HttpRouter interface {
@@ -135,7 +132,7 @@ func (s *Server) livenessHandler() func(http.ResponseWriter, *http.Request) {
 
 func (s *Server) Start() error {
 	if s.httpRouter == nil {
-		var mux = http.NewServeMux()
+		mux := http.NewServeMux()
 		mux.HandleFunc("/health/ready", s.readinessHandler())
 		mux.HandleFunc("/health/alive", s.livenessHandler())
 		s.httpRouter = mux
@@ -173,85 +170,4 @@ func GoCheck(ctx context.Context, toCheck ...Checkable) error {
 		}
 	}
 	return nil
-}
-
-// CheckRedis is helper function to ping redis
-// DEPRECATE: Use CheckRedisV8
-// func CheckRedis(redis redis.UniversalClient) func(context.Context) error {
-// 	return func(ctx context.Context) error {
-// 		ch := make(chan error)
-// 		go func() {
-// 			ch <- redis.Ping().Err()
-// 		}()
-// 		select {
-// 		case <-ctx.Done():
-// 			return ctx.Err()
-// 		case err := <-ch:
-// 			if err != nil {
-// 				log.Error().Err(err).Msg("redis healthcheck failed")
-// 			}
-// 			return err
-// 		}
-// 	}
-// }
-
-// CheckRedis is helper function to ping redis
-// DEPRECATE: Use CheckRedisV9
-// func CheckRedisV8(redis redisV8.UniversalClient) func(context.Context) error {
-// 	return func(ctx context.Context) error {
-// 		ch := make(chan error)
-// 		go func() {
-// 			ch <- redis.Ping(ctx).Err()
-// 		}()
-// 		select {
-// 		case <-ctx.Done():
-// 			return ctx.Err()
-// 		case err := <-ch:
-// 			if err != nil {
-// 				log.Error().Err(err).Msg("redis healthcheck failed")
-// 			}
-// 			return err
-// 		}
-// 	}
-// }
-
-// CheckRedisV9 is helper function to ping redis
-func CheckRedisV9(redis redisV9.UniversalClient) func(context.Context) error {
-	return func(ctx context.Context) error {
-		ch := make(chan error)
-		go func() {
-			ch <- redis.Ping(ctx).Err()
-		}()
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-ch:
-			if err != nil {
-				log.Error().Err(err).Msg("redis healthcheck failed")
-			}
-			return err
-		}
-	}
-}
-
-// CheckSQL is helper function to test write sql
-func CheckSQL(conn *sql.DB) func(context.Context) error {
-	return func(ctx context.Context) error {
-		err := conn.PingContext(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("sql healthcheck failed")
-		}
-		return err
-	}
-}
-
-// CheckPgSQL is a helper function to check PostgresSQL connection
-func CheckPgSQL(pool *wpgx.Pool) func(context.Context) error {
-	return func(ctx context.Context) error {
-		err := pool.Ping(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("sql healthcheck failed")
-		}
-		return err
-	}
 }
