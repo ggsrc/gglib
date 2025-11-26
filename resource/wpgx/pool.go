@@ -9,8 +9,8 @@ import (
 
 func (w *WPGX) newWPGXPool(ctx context.Context) (*wpgx.Pool, error) {
 	c := w.config
-	for _, opt := range w.configOpts {
-		opt(c)
+	if w.beforeAcquire != nil {
+		c.BeforeAcquire = w.beforeAcquire
 	}
 	log.Ctx(ctx).Warn().Msgf("WPGX Config: %+v", &c)
 	pool, err := wpgx.NewPool(ctx, c)

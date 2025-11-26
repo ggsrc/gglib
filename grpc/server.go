@@ -41,18 +41,16 @@ func NewServerWithOptions(opts ...ServerOption) *Server {
 	for _, opt := range opts {
 		opt(conf)
 	}
-	return &Server{
-		conf: conf,
-	}
+	return newServer(conf)
 }
 
 func NewServerWithDefaultEnvPrefix() *Server {
-	return NewServer("grpc")
+	var grpcConfig ServerConfig
+	envconfig.MustProcess("grpc", &grpcConfig)
+	return newServer(&grpcConfig)
 }
 
-func NewServer(envPrefix string, opts ...ServerOption) *Server {
-	conf := &ServerConfig{}
-	envconfig.MustProcess(envPrefix, conf)
+func newServer(conf *ServerConfig) *Server {
 	s := &Server{
 		conf: conf,
 	}
@@ -66,10 +64,6 @@ func NewServer(envPrefix string, opts ...ServerOption) *Server {
 	if conf.Verbose {
 		loggableEvents = append(loggableEvents, logging.StartCall)
 		loggableEvents = append(loggableEvents, logging.FinishCall)
-	}
-
-	for _, opt := range opts {
-		opt(conf)
 	}
 
 	interceptors := []grpc.UnaryServerInterceptor{

@@ -5,30 +5,32 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/stumble/wpgx"
 )
 
 type WPGX struct {
-	initialized bool
-	pool        *wpgx.Pool
-	configOpts  []ConfigOption
-	once        sync.Once
-	config      *wpgx.Config
+	initialized   bool
+	pool          *wpgx.Pool
+	once          sync.Once
+	beforeAcquire func(context.Context, *pgx.Conn) bool
+	config        *wpgx.Config
 }
 
-func NewWPGX(configOpts ...ConfigOption) *WPGX {
+func NewWPGXWithDefaultEnvPrefix() *WPGX {
 	cfg := wpgx.ConfigFromEnvPrefix("postgres")
-	return NewWPGXWithConfig(cfg, configOpts...)
+	return NewWPGXWithOptions(WithConfig(cfg))
 }
 
-func NewWPGXWithConfig(cfg *wpgx.Config, configOpts ...ConfigOption) *WPGX {
-	if cfg == nil {
-		panic("cfg cannot be nil")
+func NewWPGXWithOptions(opts ...Options) *WPGX {
+	w := &WPGX{}
+	for _, opt := range opts {
+		opt(w)
 	}
-	return &WPGX{
-		configOpts: configOpts,
-		config:     cfg,
+	if w.config == nil {
+		panic("config cannot be nil")
 	}
+	return w
 }
 
 func (w *WPGX) Name() string {
