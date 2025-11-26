@@ -18,11 +18,15 @@ type Cache struct {
 	dCacheConfig *DCacheConfig
 }
 
-func NewCache(appName string) *Cache {
+func NewCacheWithDefaultEnvPrefix(appName string) *Cache {
+	return NewCache(appName, "redis", "dcache")
+}
+
+func NewCache(appName string, redisEnvPrefix string, dcacheEnvPrefix string) *Cache {
 	redisCfg := RedisConfig{}
-	envconfig.MustProcess("redis", &redisCfg)
+	envconfig.MustProcess(redisEnvPrefix, &redisCfg)
 	dcacheCfg := DCacheConfig{}
-	envconfig.MustProcess("dcache", &dcacheCfg)
+	envconfig.MustProcess(dcacheEnvPrefix, &dcacheCfg)
 	return NewCacheWithConfig(appName, &redisCfg, &dcacheCfg)
 }
 
@@ -35,6 +39,22 @@ func NewCacheWithConfig(appName string, redisCfg *RedisConfig, dcacheCfg *DCache
 		redisConfig:  redisCfg,
 		dCacheConfig: dcacheCfg,
 	}
+}
+
+func NewCacheWithOptions(opts ...Option) *Cache {
+	c := &Cache{}
+	for _, opt := range opts {
+		opt(c)
+	}
+	if c.redisConfig == nil || c.dCacheConfig == nil {
+		panic(
+			"redisConfig and dcacheConfig cannot be nil, use WithRedisConfig/WithRedisEnvPrefix and WithDCacheConfig/WithDCacheEnvPrefix",
+		)
+	}
+	if c.appName == "" {
+		panic("appName cannot be empty, use WithAppName")
+	}
+	return c
 }
 
 func (c *Cache) Name() string {

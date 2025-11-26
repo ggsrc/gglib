@@ -14,8 +14,21 @@ import (
 )
 
 var (
-	testPairs = []string{"singlekey", "uno", "multikey", "one", "multikey", "two", "multikey", "three"}
-	parentCtx = context.WithValue(context.TODO(), "parentKey", "parentValue")
+	testPairs = []string{
+		"singlekey",
+		"uno",
+		"multikey",
+		"one",
+		"multikey",
+		"two",
+		"multikey",
+		"three",
+	} //nolint // Required for test
+	parentCtx = context.WithValue(
+		context.TODO(),
+		"parentKey", // nolint
+		"parentValue",
+	) //nolint // Required for test
 )
 
 func assertRetainsParentContext(t *testing.T, ctx context.Context) {
@@ -40,14 +53,29 @@ func TestNiceMD_Del(t *testing.T) {
 func TestNiceMD_Add(t *testing.T) {
 	nmd := metautils.NiceMD(metadata.Pairs(testPairs...))
 	nmd.Add("multikey", "four").Add("newkey", "something")
-	assert.EqualValues(t, []string{"one", "two", "three", "four"}, nmd["multikey"], "append should add a new four at the end")
-	assert.EqualValues(t, []string{"something"}, nmd["newkey"], "append should be able to create new keys")
+	assert.EqualValues(
+		t,
+		[]string{"one", "two", "three", "four"},
+		nmd["multikey"],
+		"append should add a new four at the end",
+	)
+	assert.EqualValues(
+		t,
+		[]string{"something"},
+		nmd["newkey"],
+		"append should be able to create new keys",
+	)
 }
 
 func TestNiceMD_Set(t *testing.T) {
 	nmd := metautils.NiceMD(metadata.Pairs(testPairs...))
 	nmd.Set("multikey", "one").Set("newkey", "something").Set("newkey", "another")
-	assert.EqualValues(t, []string{"one"}, nmd["multikey"], "set should override existing multi keys")
+	assert.EqualValues(
+		t,
+		[]string{"one"},
+		nmd["multikey"],
+		"set should override existing multi keys",
+	)
 	assert.EqualValues(t, []string{"another"}, nmd["newkey"], "set should override new keys")
 }
 
@@ -69,9 +97,19 @@ func TestNiceMD_Clone(t *testing.T) {
 	assert.Empty(t, subCopied.Get("singlekey"), "there shouldn't be a singlekey in the subcopied")
 
 	// Test side effects and full copying:
-	assert.EqualValues(t, subCopied["multikey"], nmd["multikey"], "before overwrites multikey should have the same values")
+	assert.EqualValues(
+		t,
+		subCopied["multikey"],
+		nmd["multikey"],
+		"before overwrites multikey should have the same values",
+	)
 	subCopied["multikey"][1] = "modifiedtwo"
-	assert.NotEqual(t, subCopied["multikey"], nmd["multikey"], "before overwrites multikey should have the same values")
+	assert.NotEqual(
+		t,
+		subCopied["multikey"],
+		nmd["multikey"],
+		"before overwrites multikey should have the same values",
+	)
 }
 
 func TestNiceMD_ToOutgoing(t *testing.T) {
@@ -81,7 +119,12 @@ func TestNiceMD_ToOutgoing(t *testing.T) {
 
 	eCtx := metautils.ExtractOutgoing(nCtx).Clone().Set("newvalue", "something").ToOutgoing(nCtx)
 	assertRetainsParentContext(t, eCtx)
-	assert.NotEqual(t, metautils.ExtractOutgoing(nCtx), metautils.ExtractOutgoing(eCtx), "the niceMD pointed to by ectx and nctx are different.")
+	assert.NotEqual(
+		t,
+		metautils.ExtractOutgoing(nCtx),
+		metautils.ExtractOutgoing(eCtx),
+		"the niceMD pointed to by ectx and nctx are different.",
+	)
 }
 
 func TestNiceMD_ToIncoming(t *testing.T) {
@@ -91,5 +134,10 @@ func TestNiceMD_ToIncoming(t *testing.T) {
 
 	eCtx := metautils.ExtractIncoming(nCtx).Clone().Set("newvalue", "something").ToIncoming(nCtx)
 	assertRetainsParentContext(t, eCtx)
-	assert.NotEqual(t, metautils.ExtractIncoming(nCtx), metautils.ExtractIncoming(eCtx), "the niceMD pointed to by ectx and nctx are different.")
+	assert.NotEqual(
+		t,
+		metautils.ExtractIncoming(nCtx),
+		metautils.ExtractIncoming(eCtx),
+		"the niceMD pointed to by ectx and nctx are different.",
+	)
 }

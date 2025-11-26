@@ -1,7 +1,6 @@
 package log_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +18,7 @@ func TestLog(t *testing.T) {
 	assert.NoError(t, err)
 	spaceID, err := trace.SpanIDFromHex("fd1054dfa5132df5")
 	assert.NoError(t, err)
-	ctx := trace.ContextWithSpanContext(context.Background(), trace.NewSpanContext(trace.SpanContextConfig{
+	ctx := trace.ContextWithSpanContext(t.Context(), trace.NewSpanContext(trace.SpanContextConfig{
 		TraceID:    traceID,
 		SpanID:     spaceID,
 		TraceFlags: trace.FlagsSampled,

@@ -5,9 +5,7 @@ import (
 	"strings"
 )
 
-var (
-	xForwardedFor = http.CanonicalHeaderKey("X-Forwarded-For")
-)
+var xForwardedFor = http.CanonicalHeaderKey("X-Forwarded-For")
 
 // ReverseProxyHeaders inspects common reverse proxy headers and sets the corresponding
 // fields in the HTTP request struct

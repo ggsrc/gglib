@@ -26,34 +26,8 @@ func ContextUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			}
 		}
 
-		requestSource := md.Get(pkgmetadata.CTX_KEY_REQUEST_SOURCE)
-		//nolint:golint,staticcheck
-		ctx = context.WithValue(ctx, pkgmetadata.CTX_KEY_REQUEST_SOURCE, requestSource)
-
-		// set access token
-		accessToken := md.Get(pkgmetadata.CTX_KEY_ACCESS_TOKEN)
-		//nolint:golint,staticcheck
-		ctx = context.WithValue(ctx, pkgmetadata.CTX_KEY_ACCESS_TOKEN, accessToken)
-
-		// set galxeId
-		galxeId := md.Get(pkgmetadata.CTX_KEY_GALXE_ID)
-		//nolint:golint,staticcheck
-		ctx = context.WithValue(ctx, pkgmetadata.CTX_KEY_GALXE_ID, galxeId)
-
-		// set origin
-		origin := md.Get(pkgmetadata.CTX_KEY_ORIGIN)
-		//nolint:golint,staticcheck
-		ctx = context.WithValue(ctx, pkgmetadata.CTX_KEY_ORIGIN, origin)
-
-		// set account
-		accountId := md.Get(pkgmetadata.CTX_KEY_ACCOUNT_ID)
-		//nolint:golint,staticcheck
-		ctx = context.WithValue(ctx, pkgmetadata.CTX_KEY_ACCOUNT_ID, accountId)
-
-		// set account type
-		accountType := md.Get(pkgmetadata.CTX_KEY_ACCOUNT_TYPE)
-		//nolint:golint,staticcheck
-		ctx = context.WithValue(ctx, pkgmetadata.CTX_KEY_ACCOUNT_TYPE, accountType)
+		metadata := md.Get(pkgmetadata.CTX_KEY_METADATA)
+		ctx = context.WithValue(ctx, pkgmetadata.ContextKeyMetadata, metadata)
 
 		ret, err := handler(ctx, req)
 		return ret, err

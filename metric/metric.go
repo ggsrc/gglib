@@ -7,9 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/kelseyhightower/envconfig"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -31,11 +30,21 @@ type Config struct {
 	Port int `default:"4014"`
 }
 
-func New(conf *Config) *Server {
-	if conf == nil {
-		conf = &Config{}
-		envconfig.MustProcess("metric", conf)
+func NewWithOptions(opts ...Option) *Server {
+	conf := &Config{}
+	for _, opt := range opts {
+		opt(conf)
 	}
+	return &Server{conf: conf}
+}
+
+func NewWithDefaultEnvPrefix() *Server {
+	return New("metric")
+}
+
+func New(envPrefix string) *Server {
+	conf := &Config{}
+	envconfig.MustProcess(envPrefix, conf)
 	return &Server{conf: conf}
 }
 

@@ -12,11 +12,13 @@ import (
 
 const name = "github.com/ggsrc/app"
 
-var (
-	tracer = otel.Tracer(name)
-)
+var tracer = otel.Tracer(name)
 
-func StartTrace(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+func StartTrace(
+	ctx context.Context,
+	spanName string,
+	opts ...trace.SpanStartOption,
+) (context.Context, trace.Span) {
 	opts = append(opts,
 		trace.WithSpanKind(trace.SpanKindInternal),
 		trace.WithAttributes(

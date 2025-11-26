@@ -2,20 +2,10 @@ package http
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	"strings"
 )
-
-const (
-	httpRequestKey = "_http_request"
-)
-
-func getRequest(ctx context.Context) *http.Request {
-	r, _ := ctx.Value(httpRequestKey).(*http.Request)
-	return r
-}
 
 func readRequestBody(r *http.Request) (string, error) {
 	if r.Body == nil {

@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ggsrc/gglib/goodns"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	mask "github.com/showa-93/go-mask"
+
+	"github.com/ggsrc/gglib/goodns"
 )
 
 func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
