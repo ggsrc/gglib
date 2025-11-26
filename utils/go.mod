@@ -3,7 +3,7 @@ module github.com/ggsrc/gglib/utils
 go 1.24.7
 
 require (
-	github.com/ggsrc/gglib/env v0.0.0-20250921140246-d7f8c73e78e6
+	github.com/ggsrc/gglib/env v0.0.0-20251126145614-15e1b11ff84e
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
 )
