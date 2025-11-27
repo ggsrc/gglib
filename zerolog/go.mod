@@ -5,7 +5,7 @@ go 1.24.7
 require (
 	github.com/agoda-com/opentelemetry-go/otelzerolog v0.0.2-0.20240530231629-5ecb4b699e80
 	github.com/agoda-com/opentelemetry-logs-go v0.5.1
-	github.com/ggsrc/gglib/env v0.0.0-20250921140246-d7f8c73e78e6
+	github.com/ggsrc/gglib/env v0.0.0-20251126145614-15e1b11ff84e
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
 	github.com/uptrace/uptrace-go v1.38.0

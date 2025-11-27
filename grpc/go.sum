@@ -24,10 +24,10 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/getsentry/sentry-go v0.35.3 h1:u5IJaEqZyPdWqe/hKlBKBBnMTSxB/HenCqF3QLabeds=
 github.com/getsentry/sentry-go v0.35.3/go.mod h1:mdL49ixwT2yi57k5eh7mpnDyPybixPzlzEJFu0Z76QA=
-github.com/ggsrc/gglib/env v0.0.0-20250921140246-d7f8c73e78e6 h1:zf7rwsty7v9y2djNukHIYHW9dwbEK7YstdViAUSe2yI=
-github.com/ggsrc/gglib/env v0.0.0-20250921140246-d7f8c73e78e6/go.mod h1:UrDfBSsMXWAj4AKxt3D4boR6M7It8V+Fj9YMXxCIz8Q=
-github.com/ggsrc/gglib/interceptor v0.0.0-20250921140246-d7f8c73e78e6 h1:LRV27/h1TWovuSyBUezv1VyUpoKtSRVoMbmeCCwfu7g=
-github.com/ggsrc/gglib/interceptor v0.0.0-20250921140246-d7f8c73e78e6/go.mod h1:kYRuBF1uEljE4yPQXXuERuZl7JhXMlvdT3zVmho/9MQ=
+github.com/ggsrc/gglib/env v0.0.0-20251126145614-15e1b11ff84e h1:kVUsowQ6Km0/qpmzCCGHyj2H6XPofJdx72z40bunpeM=
+github.com/ggsrc/gglib/env v0.0.0-20251126145614-15e1b11ff84e/go.mod h1:UrDfBSsMXWAj4AKxt3D4boR6M7It8V+Fj9YMXxCIz8Q=
+github.com/ggsrc/gglib/interceptor v0.0.0-20251126145614-15e1b11ff84e h1:UfmTFT3flEpUE9/w+d6+wBhbxfGPu06PJt26qIccohE=
+github.com/ggsrc/gglib/interceptor v0.0.0-20251126145614-15e1b11ff84e/go.mod h1:YI9TJcWfvOdLWn28xhk1v6xwjUCqWOY4yllMqtVML2s=
 github.com/ggsrc/gglib/mctx v0.0.0-20250921140246-d7f8c73e78e6 h1:A8eRncE9+Vq35emPSa/Er6+ykPB2auWXJydRsjaeUFo=
 github.com/ggsrc/gglib/mctx v0.0.0-20250921140246-d7f8c73e78e6/go.mod h1:V8uLjPEfAXQ13XN2pW+lqfJ64buAEuaAuuOsLduFq+Q=
 github.com/ggsrc/gglib/zerolog v0.0.0-20250921140246-d7f8c73e78e6 h1:vsZHuT0A9bgN3ZgkVoaaf500tDV7No5If8RHAq3c22k=
