@@ -41,6 +41,9 @@ func NewGoroutineManager() *GoroutineManager {
 }
 
 func (g *GoroutineManager) Run(name string, f func(ctx context.Context) error) {
+	if g.ctx == nil {
+		log.Panic().Msgf("GoroutineManager run called before init")
+	}
 	g.wg.Add(1)
 	go func() {
 		defer func() {
@@ -52,7 +55,7 @@ func (g *GoroutineManager) Run(name string, f func(ctx context.Context) error) {
 
 		err := f(g.ctx)
 		if err != nil {
-			log.Ctx(g.ctx).Err(err).Msgf("goroutine [%s] error", name)
+			log.Err(err).Msgf("goroutine [%s] error", name)
 		}
 	}()
 }
