@@ -27,9 +27,22 @@ func (g *GoroutineManager) Start(ctx context.Context) error {
 }
 
 func (g *GoroutineManager) Stop(ctx context.Context) error {
-	g.cancel()
-	g.wg.Wait()
-	return nil
+	if g.cancel != nil {
+		g.cancel()
+	}
+
+	done := make(chan struct{})
+	go func() {
+		g.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (g *GoroutineManager) OK(ctx context.Context) error {
