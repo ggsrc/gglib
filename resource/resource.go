@@ -3,7 +3,9 @@ package resource
 import (
 	"context"
 	"fmt"
+	"sync"
 
+	"github.com/ggsrc/gglib/zerolog/log"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -27,15 +29,23 @@ type ResourceManager interface {
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 	OK(ctx context.Context) error
+	Context() context.Context
 }
 
 type resourceManager struct {
+	ctx       context.Context
+	cancel    func()
 	resources []Resource
+	wg        sync.WaitGroup
 }
 
 func NewResourceManager(resources []Resource) ResourceManager {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &resourceManager{
+		ctx:       ctx,
+		cancel:    cancel,
 		resources: resources,
+		wg:        sync.WaitGroup{},
 	}
 }
 
@@ -81,6 +91,9 @@ func (rm *resourceManager) Stop(ctx context.Context) error {
 			return err
 		}
 	}
+	rm.cancel()
+	log.Ctx(rm.ctx).Info().Msg("main context cancelled, waiting for goroutine to complete")
+	rm.wg.Wait()
 	return nil
 }
 
@@ -92,4 +105,19 @@ func (rm *resourceManager) OK(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (rm *resourceManager) Context() context.Context {
+	return rm.ctx
+}
+
+func (rm *resourceManager) RunGoroutine(name string, g func(ctx context.Context) error) {
+	rm.wg.Add(1)
+	go func() {
+		defer rm.wg.Done()
+		err := g(rm.ctx)
+		if err != nil {
+			log.Ctx(rm.ctx).Err(err).Msgf("goroutine [%s] error", name)
+		}
+	}()
 }
