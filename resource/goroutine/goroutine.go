@@ -49,6 +49,9 @@ func (g *GoroutineManager) OK(ctx context.Context) error {
 	return nil
 }
 
+// NewGoroutineManager creates a new GoroutineManager.
+// The manager must be initialized with Init before calling Run or Stop.
+// Typical lifecycle: Init → Start → Run (multiple times) → Stop.
 func NewGoroutineManager() *GoroutineManager {
 	return &GoroutineManager{}
 }
