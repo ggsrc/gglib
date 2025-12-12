@@ -41,6 +41,10 @@ func NewServerWithOptions(opts ...ServerOption) *Server {
 	for _, opt := range opts {
 		opt(conf)
 	}
+	// default port is 9090
+	if conf.Port == 0 {
+		conf.Port = 9090
+	}
 	return newServer(conf)
 }
 
