@@ -17,8 +17,9 @@ import (
 )
 
 type ClientConfig struct {
-	Verbose      bool `default:"false"`
-	panicHandler recoveryinterceptor.PanicHandler
+	Verbose           bool `default:"false"`
+	panicHandler      recoveryinterceptor.PanicHandler
+	UnaryInterceptors []grpc.UnaryClientInterceptor
 }
 
 type Client struct {
@@ -63,17 +64,20 @@ func (c *Client) Dial(
 		loggableEvents = append(loggableEvents, logging.FinishCall)
 	}
 
+	interceptors := []grpc.UnaryClientInterceptor{
+		recoveryinterceptor.UnaryClientInterceptor(c.conf.panicHandler),
+		contextinterceptor.ContextUnaryClientInterceptor(),
+		logging.UnaryClientInterceptor(
+			InterceptorLogger(*logger),
+			logging.WithLogOnEvents(loggableEvents...),
+		),
+		grpc_prometheus.UnaryClientInterceptor,
+	}
+	interceptors = append(interceptors, c.conf.UnaryInterceptors...)
+
 	defaultOpts := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
-		grpc.WithUnaryInterceptor(chainUnaryClient(
-			recoveryinterceptor.UnaryClientInterceptor(c.conf.panicHandler),
-			contextinterceptor.ContextUnaryClientInterceptor(),
-			logging.UnaryClientInterceptor(
-				InterceptorLogger(*logger),
-				logging.WithLogOnEvents(loggableEvents...),
-			),
-			grpc_prometheus.UnaryClientInterceptor,
-		)),
+		grpc.WithUnaryInterceptor(chainUnaryClient(interceptors...)),
 
 		grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),

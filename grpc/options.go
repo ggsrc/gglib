@@ -23,6 +23,10 @@ func WithClientPanicHandler(panicHandler recoveryinterceptor.PanicHandler) Clien
 	}
 }
 
+func WithClientUnaryInterceptors(ii ...grpc.UnaryClientInterceptor) ClientOption {
+	return func(c *ClientConfig) { c.UnaryInterceptors = append(c.UnaryInterceptors, ii...) }
+}
+
 func WithServerVerbose(verbose bool) ServerOption {
 	return func(c *ServerConfig) {
 		c.Verbose = verbose
