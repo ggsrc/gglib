@@ -75,7 +75,7 @@ func (a *App) Start(ctx context.Context) {
 	go func() {
 		defer wg.Done()
 		if a.grpcServer != nil {
-			log.Warn().Msg("GRPC server start")
+			log.Ctx(ctx).Warn().Msg("GRPC server start")
 			grpcErrCh <- a.grpcServer.Start()
 		}
 	}()
@@ -84,19 +84,19 @@ func (a *App) Start(ctx context.Context) {
 	go func() {
 		defer wg.Done()
 		if a.healthChecker != nil {
-			log.Warn().Msg("Health checker start")
+			log.Ctx(ctx).Warn().Msg("Health checker start")
 			healthErrCh <- a.healthChecker.Start()
 		}
 	}()
 
 	if err := a.resourceManager.Start(ctx); err != nil {
-		log.Error().Err(err).Msg("resource manager error; shutting down")
+		log.Ctx(ctx).Error().Err(err).Msg("resource manager error; shutting down")
 		_ = a.Stop(ctx)
 		return
 	}
 
 	if err := a.metricServer.Start(ctx); err != nil {
-		log.Error().Err(err).Msg("metric server error; shutting down")
+		log.Ctx(ctx).Error().Err(err).Msg("metric server error; shutting down")
 		_ = a.Stop(ctx)
 		return
 	}
@@ -106,10 +106,10 @@ func (a *App) Start(ctx context.Context) {
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	select {
 	case osSig := <-sig:
-		log.Error().Msgf("received signal %s; shutting down", osSig)
+		log.Ctx(ctx).Error().Msgf("received signal %s; shutting down", osSig)
 		_ = a.Stop(ctx)
 	case err := <-healthErrCh:
-		log.Error().Err(err).Msg("health server error; shutting down")
+		log.Ctx(ctx).Error().Err(err).Msg("health server error; shutting down")
 		_ = a.Stop(ctx)
 	}
 }

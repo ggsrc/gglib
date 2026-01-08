@@ -71,7 +71,7 @@ func (g *GoroutineManager) Run(name string, f func(ctx context.Context) error) {
 
 		err := f(g.ctx)
 		if err != nil {
-			log.Err(err).Msgf("goroutine [%s] error", name)
+			log.Ctx(g.ctx).Err(err).Msgf("goroutine [%s] error", name)
 		}
 	}()
 }

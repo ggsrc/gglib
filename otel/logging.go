@@ -5,10 +5,11 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/log/global"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
+
+	"github.com/ggsrc/gglib/zerolog/log"
 )
 
 const (
@@ -24,7 +25,7 @@ func configureLogging(ctx context.Context, client *client, conf *config) {
 	}
 	exp, err := otlploghttp.New(ctx, otlpLoggerOptions(conf)...)
 	if err != nil {
-		log.Err(err).Msgf("otlploghttp.New failed")
+		log.Ctx(ctx).Err(err).Msgf("otlploghttp.New failed")
 		return
 	}
 
