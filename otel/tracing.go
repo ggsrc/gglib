@@ -10,18 +10,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/ggsrc/gglib/zerolog/log"
 )
 
 func configureTracing(ctx context.Context, client *client, conf *config) {
 	exp, err := otlptracehttp.New(ctx, otlpTraceOptions(conf)...)
 	if err != nil {
-		log.Err(err).Msgf("otlptrace.New failed")
+		log.Ctx(ctx).Err(err).Msgf("otlptrace.New failed")
 		return
 	}
 
@@ -46,7 +47,7 @@ func configureTracing(ctx context.Context, client *client, conf *config) {
 	if conf.prettyPrint {
 		exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
 		if err != nil {
-			log.Warn().Err(err).Msg("stdouttrace.New failed")
+			log.Ctx(ctx).Warn().Err(err).Msg("stdouttrace.New failed")
 		} else {
 			provider.RegisterSpanProcessor(sdktrace.NewSimpleSpanProcessor(exporter))
 		}

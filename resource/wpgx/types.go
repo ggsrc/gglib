@@ -7,7 +7,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/rs/zerolog/log"
+
+	"github.com/ggsrc/gglib/zerolog/log"
 )
 
 const defaultTimeout = 5 * time.Second
@@ -87,10 +88,10 @@ func (l *Loader) LoadTypes(ctx context.Context, conn *pgx.Conn) bool {
 			var err error
 			// load type from database
 			if pt, err = conn.LoadType(ctx, t); err != nil {
-				log.Err(err).Msgf("failed to load type %s", t)
+				log.Ctx(ctx).Err(err).Msgf("failed to load type %s", t)
 				return true
 			}
-			log.Info().Msgf("loaded type %s", t)
+			log.Ctx(ctx).Info().Msgf("loaded type %s", t)
 			conn.TypeMap().RegisterType(pt)
 			l.ptMap[t] = pt
 		}
