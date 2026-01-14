@@ -9,11 +9,7 @@ import (
 )
 
 func Ctx(ctx context.Context) *zerolog.Logger {
-	if zerolog.DefaultContextLogger == nil {
-		return zerolog.Ctx(ctx)
-	}
-	logger := zerolog.DefaultContextLogger.With().Ctx(ctx).Logger()
-	return &logger
+	return zerolog.Ctx(ctx)
 }
 
 // Output duplicates the global logger and sets w as its output.
