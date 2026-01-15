@@ -18,12 +18,13 @@ type AppContext struct {
 
 // ReqCommonParams
 type ReqCommonParams struct {
-	AppID    int32     `json:"aid"`
-	AppName  string    `json:"app_name"`
-	DeviceID string    `json:"device_id,omitempty"`
-	IP       string    `json:"ip,omitempty"`
-	ReqTime  int64     `json:"req_time,omitempty"`
-	Now      time.Time `json:"now"`
+	RequestID string    `json:"request_id"`
+	AppID     int32     `json:"aid"`
+	AppName   string    `json:"app_name"`
+	DeviceID  string    `json:"device_id,omitempty"`
+	IP        string    `json:"ip,omitempty"`
+	ReqTime   int64     `json:"req_time,omitempty"`
+	Now       time.Time `json:"now"`
 
 	// Extras custom fields
 	Extras map[string]any `json:"extras,omitempty"`
