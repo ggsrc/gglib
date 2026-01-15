@@ -3,13 +3,13 @@ package context
 import (
 	"context"
 
+	"github.com/ggsrc/gglib/mctx"
+	"github.com/ggsrc/gglib/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/ggsrc/gglib/interceptor/grpc/metautils"
 	pkgmetadata "github.com/ggsrc/gglib/interceptor/metadata"
-	"github.com/ggsrc/gglib/mctx"
-	"github.com/ggsrc/gglib/zerolog/log"
 )
 
 func ContextUnaryServerInterceptor() grpc.UnaryServerInterceptor {
@@ -21,6 +21,12 @@ func ContextUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			appCtx, err := mctx.StringToAppCtx(appCtxStr)
 			if err == nil {
 				ctx = mctx.ContextWithAppCtx(ctx, appCtx)
+
+				logger := log.Ctx(ctx).With().
+					Str("request_id", appCtx.CommonParams.RequestID).
+					Str("user_id", appCtx.User.UserID)
+				ctx = logger.Logger().WithContext(ctx)
+
 			} else {
 				log.Ctx(ctx).Error().Err(err).Msg("failed to convert app ctx")
 			}
