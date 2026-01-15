@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/ggsrc/gglib/env"
+	contextinterceptor "github.com/ggsrc/gglib/interceptor/grpc/context"
+	loginterceptor "github.com/ggsrc/gglib/interceptor/grpc/log"
+	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/kelseyhightower/envconfig"
@@ -12,11 +16,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
-
-	"github.com/ggsrc/gglib/env"
-	contextinterceptor "github.com/ggsrc/gglib/interceptor/grpc/context"
-	loginterceptor "github.com/ggsrc/gglib/interceptor/grpc/log"
-	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 )
 
 type Server struct {
@@ -71,13 +70,13 @@ func newServer(conf *ServerConfig) *Server {
 	}
 
 	interceptors := []grpc.UnaryServerInterceptor{
+		contextinterceptor.ContextUnaryServerInterceptor(),
 		recoveryinterceptor.UnaryServerInterceptor(conf.panicHandler),
 		logging.UnaryServerInterceptor(
 			InterceptorLogger(*logger),
 			logging.WithLogOnEvents(loggableEvents...),
 		),
 		grpc_prometheus.UnaryServerInterceptor,
-		contextinterceptor.ContextUnaryServerInterceptor(),
 	}
 
 	if conf.Debug || !env.IsProduction() {
