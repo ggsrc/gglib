@@ -24,7 +24,7 @@ func WithClientPanicHandler(panicHandler recoveryinterceptor.PanicHandler) Clien
 }
 
 func WithClientUnaryInterceptors(ii ...grpc.UnaryClientInterceptor) ClientOption {
-	return func(c *ClientConfig) { c.UnaryInterceptors = append(c.UnaryInterceptors, ii...) }
+	return func(c *ClientConfig) { c.unaryInterceptors = append(c.unaryInterceptors, ii...) }
 }
 
 func WithServerVerbose(verbose bool) ServerOption {
@@ -52,9 +52,9 @@ func WithServerPanicHandler(panicHandler recoveryinterceptor.PanicHandler) Serve
 }
 
 func WithServerUnaryInterceptors(ii ...grpc.UnaryServerInterceptor) ServerOption {
-	return func(c *ServerConfig) { c.UnaryInterceptors = append(c.UnaryInterceptors, ii...) }
+	return func(c *ServerConfig) { c.unaryInterceptors = append(c.unaryInterceptors, ii...) }
 }
 
 func WithServerGRPCServerOptions(opts ...grpc.ServerOption) ServerOption {
-	return func(c *ServerConfig) { c.GRPCServerOptions = append(c.GRPCServerOptions, opts...) }
+	return func(c *ServerConfig) { c.gRPCServerOptions = append(c.gRPCServerOptions, opts...) }
 }
