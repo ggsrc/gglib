@@ -17,9 +17,10 @@ import (
 )
 
 type ClientConfig struct {
-	Verbose           bool `default:"false"`
+	Verbose bool `default:"false"`
+
 	panicHandler      recoveryinterceptor.PanicHandler
-	UnaryInterceptors []grpc.UnaryClientInterceptor
+	unaryInterceptors []grpc.UnaryClientInterceptor
 }
 
 type Client struct {
@@ -73,7 +74,7 @@ func (c *Client) Dial(
 		),
 		grpc_prometheus.UnaryClientInterceptor,
 	}
-	interceptors = append(interceptors, c.conf.UnaryInterceptors...)
+	interceptors = append(interceptors, c.conf.unaryInterceptors...)
 
 	defaultOpts := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),

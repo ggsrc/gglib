@@ -22,3 +22,11 @@ go-mod-tidy:
 		echo "Tidying $$dir"; \
 		(cd "$$dir" && go mod tidy) || exit 1; \
 	done
+
+go-mod-update:
+	@echo "--> Updating all dependencies to latest versions"
+	@find . -name go.mod -not -path "./go.mod" | while read modfile; do \
+		dir=$$(dirname $$modfile); \
+		echo "Updating $$dir"; \
+		(cd "$$dir" && go get -u ./... && go mod tidy) || exit 1; \
+	done

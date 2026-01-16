@@ -24,15 +24,13 @@ type Server struct {
 }
 
 type ServerConfig struct {
-	Debug bool `default:"false"`
-	Port  int  `default:"9090"`
-
-	// LogMasker takes in FullMethod and req as input and returns masked req
+	Debug   bool `default:"false"`
+	Port    int  `default:"9090"`
 	Verbose bool `default:"false"`
 
 	panicHandler      recoveryinterceptor.PanicHandler
-	UnaryInterceptors []grpc.UnaryServerInterceptor
-	GRPCServerOptions []grpc.ServerOption
+	unaryInterceptors []grpc.UnaryServerInterceptor
+	gRPCServerOptions []grpc.ServerOption
 }
 
 func NewServerWithOptions(opts ...ServerOption) *Server {
@@ -83,14 +81,14 @@ func newServer(conf *ServerConfig) *Server {
 		interceptors = append(interceptors, loginterceptor.LogUnaryServerInterceptor())
 	}
 
-	interceptors = append(interceptors, conf.UnaryInterceptors...)
+	interceptors = append(interceptors, conf.unaryInterceptors...)
 
 	defaultOpts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(chainUnaryServer(interceptors...)),
 		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	}
-	defaultOpts = append(defaultOpts, conf.GRPCServerOptions...)
+	defaultOpts = append(defaultOpts, conf.gRPCServerOptions...)
 	s.server = grpc.NewServer(defaultOpts...)
 	grpc_prometheus.Register(s.server)
 	// Prometheus histograms are a great way to measure latency distributions of your RPCs. However,
