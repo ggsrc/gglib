@@ -13,6 +13,11 @@ type RedisConfig struct {
 	ClusterMaxRedirects int           `default:"3"`
 	ReadTimeout         time.Duration `default:"3s"`
 	PoolSize            int           `default:"50"`
+
+	// TLS configuration
+	TLSEnabled            bool   `default:"false"`
+	TLSInsecureSkipVerify bool   `default:"false"`
+	TLSCACert             string `default:""`
 }
 
 type DCacheConfig struct {
