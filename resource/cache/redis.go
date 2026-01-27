@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"time"
 
@@ -14,6 +15,29 @@ import (
 	"github.com/ggsrc/gglib/goodns"
 )
 
+func (cache *Cache) buildTLSConfig() *tls.Config {
+	c := cache.redisConfig
+	if !c.TLSEnabled {
+		return nil
+	}
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		// nolint: gosec
+		InsecureSkipVerify: c.TLSInsecureSkipVerify,
+	}
+
+	if c.TLSCACert != "" {
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM([]byte(c.TLSCACert)) {
+			log.Fatal().Msg("failed to parse TLS CA certificate")
+		}
+		tlsConfig.RootCAs = caCertPool
+	}
+
+	return tlsConfig
+}
+
 func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 	c := cache.redisConfig
 	masker := mask.NewMasker()
@@ -23,6 +47,8 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 	conf, _ := masker.Mask(c)
 	log.Warn().Msgf("Redis Config: %+v", conf)
 
+	tlsConfig := cache.buildTLSConfig()
+
 	var redisClient redis.UniversalClient
 	if c.IsClusterMode {
 		redisClient = redis.NewClusterClient(&redis.ClusterOptions{
@@ -31,6 +57,7 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 			ReadTimeout:  c.ReadTimeout,
 			PoolSize:     c.PoolSize,
 			Password:     c.Password,
+			TLSConfig:    tlsConfig,
 		})
 	} else if !c.IsFailover {
 		option := &redis.Options{
@@ -38,6 +65,7 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 			ReadTimeout: c.ReadTimeout,
 			PoolSize:    c.PoolSize,
 			Password:    c.Password,
+			TLSConfig:   tlsConfig,
 		}
 		if c.IsElastiCache {
 			// Elasticache cert cannot be applied to cname record we use
@@ -68,6 +96,7 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 			Password:      c.Password,
 			PoolSize:      c.PoolSize,
 			ReadTimeout:   c.ReadTimeout,
+			TLSConfig:     tlsConfig,
 		})
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
