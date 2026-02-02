@@ -4,34 +4,36 @@ import (
 	"context"
 	"errors"
 
-	hatchetcli "github.com/hatchet-dev/hatchet/pkg/v1"
-	hatchetworker "github.com/hatchet-dev/hatchet/pkg/v1/worker"
+	hatchet "github.com/hatchet-dev/hatchet/sdks/go"
+	v0Client "github.com/hatchet-dev/hatchet/pkg/client"
 )
 
 type Hatchet struct {
 	initialized           bool
-	clientOpts            []hatchetcli.Config
-	workerOpt             hatchetworker.WorkerOpts
-	hatchetCli            hatchetcli.HatchetClient
-	hatchetWorker         hatchetworker.Worker
+	clientOpts            []v0Client.ClientOpt
+	workerName            string
+	workerOpts            []hatchet.WorkerOption
+	hatchetCli            *hatchet.Client
+	hatchetWorker        *hatchet.Worker
 	workerCleanupFunction func() error
 }
 
-func NewHatchet(clientOpt []hatchetcli.Config, workerOpt hatchetworker.WorkerOpts) *Hatchet {
+func NewHatchet(clientOpt []v0Client.ClientOpt, workerName string, workerOpts ...hatchet.WorkerOption) *Hatchet {
 	return &Hatchet{
 		clientOpts: clientOpt,
-		workerOpt:  workerOpt,
+		workerName: workerName,
+		workerOpts: workerOpts,
 	}
 }
 
 func (h *Hatchet) Init(ctx context.Context) error {
-	client, err := hatchetcli.NewHatchetClient(h.clientOpts...)
+	client, err := hatchet.NewClient(h.clientOpts...)
 	if err != nil {
 		return err
 	}
 	h.hatchetCli = client
 
-	worker, err := client.Worker(h.workerOpt)
+	worker, err := client.NewWorker(h.workerName, h.workerOpts...)
 	if err != nil {
 		return err
 	}
@@ -64,11 +66,11 @@ func (h *Hatchet) Name() string {
 	return "hatchet"
 }
 
-func (h *Hatchet) GetHatchetWorker() hatchetworker.Worker {
+func (h *Hatchet) GetHatchetWorker() *hatchet.Worker {
 	return h.hatchetWorker
 }
 
-func (h *Hatchet) GetHatchetCli() hatchetcli.HatchetClient {
+func (h *Hatchet) GetHatchetCli() *hatchet.Client {
 	return h.hatchetCli
 }
 
