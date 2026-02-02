@@ -34,6 +34,8 @@ github.com/getkin/kin-openapi v0.133.0 h1:pJdmNohVIJ97r4AUFtEXRXwESr8b0bD721u/Tz
 github.com/getkin/kin-openapi v0.133.0/go.mod h1:boAciF6cXk5FhPqe/NQeBTeenbjqU4LhWBf09ILVvWE=
 github.com/getsentry/sentry-go v0.35.3 h1:u5IJaEqZyPdWqe/hKlBKBBnMTSxB/HenCqF3QLabeds=
 github.com/getsentry/sentry-go v0.35.3/go.mod h1:mdL49ixwT2yi57k5eh7mpnDyPybixPzlzEJFu0Z76QA=
+github.com/ggsrc/gglib v0.0.0-20260202153810-9a4bb04b6f9c h1:c6fucNecFiA36RLZbK3EyBkUtIOi+ulh4r89TVsYgLE=
+github.com/ggsrc/gglib v0.0.0-20260202153810-9a4bb04b6f9c/go.mod h1:i0Nj2UBTiYlTOtdXrpXUj0xZu4160pGJl/F7MfFrn/Q=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
 github.com/go-errors/errors v1.4.2/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=

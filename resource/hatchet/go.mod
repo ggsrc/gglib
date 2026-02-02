@@ -17,6 +17,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/getkin/kin-openapi v0.133.0 // indirect
 	github.com/getsentry/sentry-go v0.35.3 // indirect
+	github.com/ggsrc/gglib v0.0.0-20260202153810-9a4bb04b6f9c // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
