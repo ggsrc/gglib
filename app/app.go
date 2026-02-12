@@ -55,6 +55,7 @@ func NewApp(opts ...Option) *App {
 func (a *App) Start(ctx context.Context) {
 	if a.options.OTELEnabled {
 		uptrace.ConfigureOpentelemetry(
+			uptrace.WithServiceName(a.options.ServerName),
 			uptrace.WithDeploymentEnvironment(a.options.Env),
 			uptrace.WithServiceVersion(a.options.ServerVersion),
 			uptrace.WithDSN(a.options.OTELDSN),
