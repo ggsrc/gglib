@@ -13,6 +13,7 @@ type RedisConfig struct {
 	ClusterMaxRedirects int           `default:"3"`
 	ReadTimeout         time.Duration `default:"3s"`
 	PoolSize            int           `default:"50"`
+	DisableIdentity     bool          `default:"false"`
 
 	// TLS configuration
 	TLSEnabled            bool   `default:"false"`
