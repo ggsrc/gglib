@@ -52,20 +52,22 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 	var redisClient redis.UniversalClient
 	if c.IsClusterMode {
 		redisClient = redis.NewClusterClient(&redis.ClusterOptions{
-			Addrs:        c.ClusterAddrs,
-			MaxRedirects: c.ClusterMaxRedirects,
-			ReadTimeout:  c.ReadTimeout,
-			PoolSize:     c.PoolSize,
-			Password:     c.Password,
-			TLSConfig:    tlsConfig,
+			Addrs:           c.ClusterAddrs,
+			MaxRedirects:    c.ClusterMaxRedirects,
+			ReadTimeout:     c.ReadTimeout,
+			PoolSize:        c.PoolSize,
+			Password:        c.Password,
+			DisableIdentity: true,
+			TLSConfig:       tlsConfig,
 		})
 	} else if !c.IsFailover {
 		option := &redis.Options{
-			Addr:        fmt.Sprintf("%s:%d", c.Host, c.Port),
-			ReadTimeout: c.ReadTimeout,
-			PoolSize:    c.PoolSize,
-			Password:    c.Password,
-			TLSConfig:   tlsConfig,
+			Addr:            fmt.Sprintf("%s:%d", c.Host, c.Port),
+			ReadTimeout:     c.ReadTimeout,
+			PoolSize:        c.PoolSize,
+			Password:        c.Password,
+			DisableIdentity: true,
+			TLSConfig:       tlsConfig,
 		}
 		if c.IsElastiCache {
 			// Elasticache cert cannot be applied to cname record we use
@@ -91,12 +93,13 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 			addrs[i] = fmt.Sprintf("%s:%d", ip.String(), c.Port)
 		}
 		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    "master",
-			SentinelAddrs: addrs,
-			Password:      c.Password,
-			PoolSize:      c.PoolSize,
-			ReadTimeout:   c.ReadTimeout,
-			TLSConfig:     tlsConfig,
+			MasterName:      "master",
+			SentinelAddrs:   addrs,
+			Password:        c.Password,
+			PoolSize:        c.PoolSize,
+			ReadTimeout:     c.ReadTimeout,
+			DisableIdentity: true,
+			TLSConfig:       tlsConfig,
 		})
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
