@@ -2,17 +2,13 @@ package recovery
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"runtime/debug"
 	"strings"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/jinzhu/copier"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/status"
 
-	"github.com/ggsrc/gglib/interceptor/grpc/errors"
 	"github.com/ggsrc/gglib/zerolog/log"
 )
 
@@ -33,37 +29,10 @@ func UnaryServerInterceptor(panicHandler PanicHandler) grpc.UnaryServerIntercept
 			}
 		}()
 
-		resp, err = handler(ctx, req)
-		if err != nil {
-			var subErrs []*errors.ErrorInfo
-			grpcStatus, ok := status.FromError(err)
-			if ok {
-				for _, errorDetail := range grpcStatus.Details() {
-					if errorDetail == nil {
-						continue
-					}
-					var subErr errors.ErrorInfo
-					copyErr := copier.Copy(&subErr, errorDetail)
-					if copyErr != nil {
-						continue
-					}
-					subErrs = append(subErrs, &subErr)
-				}
-				subErrStr, _ := json.Marshal(subErrs)
-				log.Ctx(ctx).
-					Error().
-					Str("sub_errors", string(subErrStr)).
-					Err(err).
-					Msg("grpc server error")
-			} else {
-				log.Ctx(ctx).Error().Err(err).Msg("grpc server error")
-			}
-		}
-		return resp, err
+		return handler(ctx, req)
 	}
 }
 
-// UnaryClientInterceptor 返回一个通用的 gRPC unary client 拦截器，支持自定义 panic 和 error 处理
 func UnaryClientInterceptor(panicHandler PanicHandler) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
 		defer func() {
@@ -79,11 +48,7 @@ func UnaryClientInterceptor(panicHandler PanicHandler) grpc.UnaryClientIntercept
 			}
 		}()
 
-		err = invoker(ctx, method, req, reply, cc, opts...)
-		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("grpc client error")
-		}
-		return err
+		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 }
 
