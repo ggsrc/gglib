@@ -57,7 +57,7 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 			ReadTimeout:     c.ReadTimeout,
 			PoolSize:        c.PoolSize,
 			Password:        c.Password,
-			DisableIdentity: true,
+			DisableIdentity: c.DisableIdentity,
 			TLSConfig:       tlsConfig,
 		})
 	} else if !c.IsFailover {
@@ -66,7 +66,7 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 			ReadTimeout:     c.ReadTimeout,
 			PoolSize:        c.PoolSize,
 			Password:        c.Password,
-			DisableIdentity: true,
+			DisableIdentity: c.DisableIdentity,
 			TLSConfig:       tlsConfig,
 		}
 		if c.IsElastiCache {
@@ -98,7 +98,7 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 			Password:        c.Password,
 			PoolSize:        c.PoolSize,
 			ReadTimeout:     c.ReadTimeout,
-			DisableIdentity: true,
+			DisableIdentity: c.DisableIdentity,
 			TLSConfig:       tlsConfig,
 		})
 	}
