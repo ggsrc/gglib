@@ -7,6 +7,7 @@ import (
 
 	"github.com/ggsrc/gglib/env"
 	contextinterceptor "github.com/ggsrc/gglib/interceptor/grpc/context"
+	errloginterceptor "github.com/ggsrc/gglib/interceptor/grpc/errlog"
 	loginterceptor "github.com/ggsrc/gglib/interceptor/grpc/log"
 	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -70,6 +71,7 @@ func newServer(conf *ServerConfig) *Server {
 	interceptors := []grpc.UnaryServerInterceptor{
 		contextinterceptor.ContextUnaryServerInterceptor(),
 		recoveryinterceptor.UnaryServerInterceptor(conf.panicHandler),
+		errloginterceptor.UnaryServerInterceptor(),
 		logging.UnaryServerInterceptor(
 			InterceptorLogger(*logger),
 			logging.WithLogOnEvents(loggableEvents...),

@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 
 	contextinterceptor "github.com/ggsrc/gglib/interceptor/grpc/context"
+	errloginterceptor "github.com/ggsrc/gglib/interceptor/grpc/errlog"
 	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 )
 
@@ -67,6 +68,7 @@ func (c *Client) Dial(
 
 	interceptors := []grpc.UnaryClientInterceptor{
 		recoveryinterceptor.UnaryClientInterceptor(c.conf.panicHandler),
+		errloginterceptor.UnaryClientInterceptor(),
 		contextinterceptor.ContextUnaryClientInterceptor(),
 		logging.UnaryClientInterceptor(
 			InterceptorLogger(*logger),
