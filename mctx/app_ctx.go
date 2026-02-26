@@ -62,7 +62,10 @@ func StringToAppCtx(s string) (*AppContext, error) {
 	if err != nil {
 		return nil, err
 	}
-	if appCtx.CommonParams.Now.Unix() == 0 {
+	if appCtx.CommonParams == nil {
+		appCtx.CommonParams = &ReqCommonParams{}
+	}
+	if appCtx.CommonParams.Now.IsZero() {
 		appCtx.CommonParams.Now = time.Now()
 	}
 	return &appCtx, nil
