@@ -22,9 +22,16 @@ func ContextUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			if err == nil {
 				ctx = mctx.ContextWithAppCtx(ctx, appCtx)
 
+				// Bind ctx to the logger so subsequent events carry it. Without
+				// this, `log.Ctx(ctx).Info().Msg(...)` emits events whose
+				// e.GetCtx() is nil — which means zerolog hooks that need to
+				// read the OTel SpanContext from ctx (for correlating logs to
+				// traces) cannot fire. With .Ctx(ctx), any downstream event
+				// built from this logger has the ctx available to hooks.
 				logger := log.Ctx(ctx).With().
 					Str("request_id", appCtx.CommonParams.RequestID).
-					Str("user_id", appCtx.User.UserID)
+					Str("user_id", appCtx.User.UserID).
+					Ctx(ctx)
 				ctx = logger.Logger().WithContext(ctx)
 
 			} else {
