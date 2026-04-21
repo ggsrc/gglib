@@ -21,7 +21,7 @@ func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			logGRPCError(ctx, err, "grpc server error")
+			logGRPCError(ctx, err, info.FullMethod, "grpc server error")
 		}
 		return resp, err
 	}
@@ -32,13 +32,13 @@ func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		if err != nil {
-			logGRPCError(ctx, err, "grpc client error")
+			logGRPCError(ctx, err, method, "grpc client error")
 		}
 		return err
 	}
 }
 
-func logGRPCError(ctx context.Context, err error, msg string) {
+func logGRPCError(ctx context.Context, err error, method, msg string) {
 	grpcStatus, ok := status.FromError(err)
 	if !ok {
 		log.Ctx(ctx).Error().Err(err).Msg(msg)
@@ -59,6 +59,7 @@ func logGRPCError(ctx context.Context, err error, msg string) {
 	subErrStr, _ := json.Marshal(subErrs)
 	log.Ctx(ctx).
 		WithLevel(levelForCode(grpcStatus.Code())).
+		Str("grpc_method", method).
 		Str("sub_errors", string(subErrStr)).
 		Err(err).
 		Msg(msg)

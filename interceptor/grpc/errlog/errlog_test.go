@@ -17,10 +17,11 @@ import (
 
 // logEntry is the JSON structure emitted by zerolog.
 type logEntry struct {
-	Level     string `json:"level"`
-	Error     string `json:"error"`
-	Message   string `json:"message"`
-	SubErrors string `json:"sub_errors"`
+	Level      string `json:"level"`
+	Error      string `json:"error"`
+	Message    string `json:"message"`
+	GrpcMethod string `json:"grpc_method"`
+	SubErrors  string `json:"sub_errors"`
 }
 
 func ctxWithLogger(buf *bytes.Buffer) context.Context {
@@ -110,6 +111,7 @@ func TestServer_NotFound_LogsWarn(t *testing.T) {
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
 	assert.Equal(t, "warn", entry.Level)
 	assert.Equal(t, "grpc server error", entry.Message)
+	assert.Equal(t, "/test.Service/Method", entry.GrpcMethod)
 	assert.Contains(t, entry.Error, "file not found")
 }
 
@@ -144,6 +146,7 @@ func TestServer_Internal_LogsError(t *testing.T) {
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
 	assert.Equal(t, "error", entry.Level)
 	assert.Equal(t, "grpc server error", entry.Message)
+	assert.Equal(t, "/test.Service/Method", entry.GrpcMethod)
 	assert.Contains(t, entry.Error, "database crashed")
 }
 
@@ -251,6 +254,7 @@ func TestClient_NotFound_LogsWarn(t *testing.T) {
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
 	assert.Equal(t, "warn", entry.Level)
 	assert.Equal(t, "grpc client error", entry.Message)
+	assert.Equal(t, "/svc/Method", entry.GrpcMethod)
 }
 
 func TestClient_Internal_LogsError(t *testing.T) {
@@ -266,6 +270,7 @@ func TestClient_Internal_LogsError(t *testing.T) {
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
 	assert.Equal(t, "error", entry.Level)
 	assert.Equal(t, "grpc client error", entry.Message)
+	assert.Equal(t, "/svc/Method", entry.GrpcMethod)
 }
 
 func TestClient_Unavailable_LogsError(t *testing.T) {
