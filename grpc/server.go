@@ -5,11 +5,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/ggsrc/gglib/env"
-	contextinterceptor "github.com/ggsrc/gglib/interceptor/grpc/context"
-	errloginterceptor "github.com/ggsrc/gglib/interceptor/grpc/errlog"
-	loginterceptor "github.com/ggsrc/gglib/interceptor/grpc/log"
-	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/kelseyhightower/envconfig"
@@ -17,6 +12,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
+
+	"github.com/ggsrc/gglib/env"
+	contextinterceptor "github.com/ggsrc/gglib/interceptor/grpc/context"
+	errloginterceptor "github.com/ggsrc/gglib/interceptor/grpc/errlog"
+	loginterceptor "github.com/ggsrc/gglib/interceptor/grpc/log"
+	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 )
 
 type Server struct {

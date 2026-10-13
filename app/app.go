@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"sync"
@@ -118,44 +119,31 @@ func (a *App) Stop(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, DefaultResourceShutDownTimeout)
 	defer cancel()
 
-	// shutdown services concurrently and wait for all to finish, e.g. grpc server, cronjob, etc.
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		// shutdown grpc server
-		if a.grpcServer != nil {
-			if err := a.grpcServer.Shutdown(ctx); err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to shutdown grpc server")
-			}
+	// Stop readiness and admission before draining. Handlers may still need
+	// shared resources after their upstream work finishes (for example billing).
+	if a.healthChecker != nil {
+		a.healthChecker.Stop()
+	}
+	var shutdownErrors []error
+	if a.grpcServer != nil {
+		if err := a.grpcServer.Shutdown(ctx); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to shutdown grpc server")
+			shutdownErrors = append(shutdownErrors, err)
 		}
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if a.resourceManager != nil {
-			if err := a.resourceManager.Stop(ctx); err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to shutdown cronjob")
-			}
+	}
+	// Shutdown returns after drain, or force-stops the server at the deadline.
+	// Only then release dependencies; a drain error must not skip cleanup.
+	if a.resourceManager != nil {
+		if err := a.resourceManager.Stop(ctx); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to shutdown resources")
+			shutdownErrors = append(shutdownErrors, err)
 		}
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if a.healthChecker != nil {
-			a.healthChecker.Stop()
+	}
+	if a.metricServer != nil {
+		if err := a.metricServer.Stop(ctx); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("failed to shutdown metrics")
+			shutdownErrors = append(shutdownErrors, err)
 		}
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if a.metricServer != nil {
-			if err := a.metricServer.Stop(ctx); err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to shutdown metricer")
-			}
-		}
-	}()
-
-	wg.Wait()
-	return nil
+	}
+	return errors.Join(shutdownErrors...)
 }

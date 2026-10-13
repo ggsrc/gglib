@@ -64,7 +64,10 @@ func (g *GoroutineManager) Run(name string, f func(ctx context.Context) error) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Ctx(g.ctx).Error().Interface("panic", r).Msgf("GoroutineManager [%s] panicked", name)
+				log.Ctx(g.ctx).
+					Error().
+					Interface("panic", r).
+					Msgf("GoroutineManager [%s] panicked", name)
 			}
 			g.wg.Done()
 		}()
