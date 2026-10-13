@@ -86,9 +86,14 @@ func TestServer_NoError_NoLog(t *testing.T) {
 	ctx := ctxWithLogger(&buf)
 
 	interceptor := UnaryServerInterceptor()
-	resp, err := interceptor(ctx, "req", serverInfo(), func(ctx context.Context, req interface{}) (interface{}, error) {
-		return "ok", nil
-	})
+	resp, err := interceptor(
+		ctx,
+		"req",
+		serverInfo(),
+		func(ctx context.Context, req interface{}) (interface{}, error) {
+			return "ok", nil
+		},
+	)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "ok", resp)
@@ -100,9 +105,14 @@ func TestServer_NotFound_LogsWarn(t *testing.T) {
 	ctx := ctxWithLogger(&buf)
 
 	interceptor := UnaryServerInterceptor()
-	resp, err := interceptor(ctx, "req", serverInfo(), func(ctx context.Context, req interface{}) (interface{}, error) {
-		return nil, status.Error(codes.NotFound, "file not found")
-	})
+	resp, err := interceptor(
+		ctx,
+		"req",
+		serverInfo(),
+		func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, status.Error(codes.NotFound, "file not found")
+		},
+	)
 
 	assert.Nil(t, resp)
 	assert.Error(t, err)
@@ -120,9 +130,14 @@ func TestServer_AlreadyExists_LogsWarn(t *testing.T) {
 	ctx := ctxWithLogger(&buf)
 
 	interceptor := UnaryServerInterceptor()
-	_, err := interceptor(ctx, "req", serverInfo(), func(ctx context.Context, req interface{}) (interface{}, error) {
-		return nil, status.Error(codes.AlreadyExists, "already exists")
-	})
+	_, err := interceptor(
+		ctx,
+		"req",
+		serverInfo(),
+		func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, status.Error(codes.AlreadyExists, "already exists")
+		},
+	)
 
 	assert.Error(t, err)
 
@@ -136,9 +151,14 @@ func TestServer_Internal_LogsError(t *testing.T) {
 	ctx := ctxWithLogger(&buf)
 
 	interceptor := UnaryServerInterceptor()
-	_, err := interceptor(ctx, "req", serverInfo(), func(ctx context.Context, req interface{}) (interface{}, error) {
-		return nil, status.Error(codes.Internal, "database crashed")
-	})
+	_, err := interceptor(
+		ctx,
+		"req",
+		serverInfo(),
+		func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, status.Error(codes.Internal, "database crashed")
+		},
+	)
 
 	assert.Error(t, err)
 
@@ -155,9 +175,14 @@ func TestServer_Unknown_LogsError(t *testing.T) {
 	ctx := ctxWithLogger(&buf)
 
 	interceptor := UnaryServerInterceptor()
-	_, err := interceptor(ctx, "req", serverInfo(), func(ctx context.Context, req interface{}) (interface{}, error) {
-		return nil, status.Error(codes.Unknown, "something went wrong")
-	})
+	_, err := interceptor(
+		ctx,
+		"req",
+		serverInfo(),
+		func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, status.Error(codes.Unknown, "something went wrong")
+		},
+	)
 
 	assert.Error(t, err)
 
@@ -171,9 +196,14 @@ func TestServer_NonGRPCError_LogsError(t *testing.T) {
 	ctx := ctxWithLogger(&buf)
 
 	interceptor := UnaryServerInterceptor()
-	_, err := interceptor(ctx, "req", serverInfo(), func(ctx context.Context, req interface{}) (interface{}, error) {
-		return nil, fmt.Errorf("raw error")
-	})
+	_, err := interceptor(
+		ctx,
+		"req",
+		serverInfo(),
+		func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, fmt.Errorf("raw error")
+		},
+	)
 
 	assert.Error(t, err)
 
@@ -194,9 +224,14 @@ func TestServer_PreservesResponseAndError(t *testing.T) {
 
 	handlerErr := status.Error(codes.NotFound, "nope")
 	interceptor := UnaryServerInterceptor()
-	resp, err := interceptor(ctx, "req", serverInfo(), func(ctx context.Context, req interface{}) (interface{}, error) {
-		return "partial", handlerErr
-	})
+	resp, err := interceptor(
+		ctx,
+		"req",
+		serverInfo(),
+		func(ctx context.Context, req interface{}) (interface{}, error) {
+			return "partial", handlerErr
+		},
+	)
 
 	assert.Equal(t, "partial", resp)
 	assert.Equal(t, handlerErr, err)
@@ -208,10 +243,15 @@ func TestServer_PassesThroughRequest(t *testing.T) {
 
 	var receivedReq interface{}
 	interceptor := UnaryServerInterceptor()
-	_, _ = interceptor(ctx, "my-request", serverInfo(), func(ctx context.Context, req interface{}) (interface{}, error) {
-		receivedReq = req
-		return nil, nil
-	})
+	_, _ = interceptor(
+		ctx,
+		"my-request",
+		serverInfo(),
+		func(ctx context.Context, req interface{}) (interface{}, error) {
+			receivedReq = req
+			return nil, nil
+		},
+	)
 
 	assert.Equal(t, "my-request", receivedReq)
 }
@@ -220,7 +260,13 @@ func TestServer_PassesThroughRequest(t *testing.T) {
 // UnaryClientInterceptor
 // ---------------------------------------------------------------------------
 
-func noopInvoker(_ context.Context, _ string, _, _ any, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
+func noopInvoker(
+	_ context.Context,
+	_ string,
+	_, _ any,
+	_ *grpc.ClientConn,
+	_ ...grpc.CallOption,
+) error {
 	return nil
 }
 
@@ -278,7 +324,14 @@ func TestClient_Unavailable_LogsError(t *testing.T) {
 	ctx := ctxWithLogger(&buf)
 
 	interceptor := UnaryClientInterceptor()
-	err := interceptor(ctx, "/svc/Method", nil, nil, nil, errorInvoker(codes.Unavailable, "server down"))
+	err := interceptor(
+		ctx,
+		"/svc/Method",
+		nil,
+		nil,
+		nil,
+		errorInvoker(codes.Unavailable, "server down"),
+	)
 
 	assert.Error(t, err)
 
@@ -292,7 +345,14 @@ func TestClient_PermissionDenied_LogsWarn(t *testing.T) {
 	ctx := ctxWithLogger(&buf)
 
 	interceptor := UnaryClientInterceptor()
-	err := interceptor(ctx, "/svc/Method", nil, nil, nil, errorInvoker(codes.PermissionDenied, "forbidden"))
+	err := interceptor(
+		ctx,
+		"/svc/Method",
+		nil,
+		nil,
+		nil,
+		errorInvoker(codes.PermissionDenied, "forbidden"),
+	)
 
 	assert.Error(t, err)
 
@@ -307,9 +367,16 @@ func TestClient_PreservesError(t *testing.T) {
 
 	var buf bytes.Buffer
 	ctx := ctxWithLogger(&buf)
-	err := interceptor(ctx, "/svc/Method", nil, nil, nil, func(_ context.Context, _ string, _, _ any, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
-		return expected
-	})
+	err := interceptor(
+		ctx,
+		"/svc/Method",
+		nil,
+		nil,
+		nil,
+		func(_ context.Context, _ string, _, _ any, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
+			return expected
+		},
+	)
 
 	assert.Equal(t, expected, err)
 }
@@ -326,7 +393,7 @@ func TestLevelForCode_Exhaustive(t *testing.T) {
 		codes.InvalidArgument:    zerolog.WarnLevel,
 		codes.DeadlineExceeded:   zerolog.ErrorLevel,
 		codes.NotFound:           zerolog.WarnLevel,
-		codes.AlreadyExists:     zerolog.WarnLevel,
+		codes.AlreadyExists:      zerolog.WarnLevel,
 		codes.PermissionDenied:   zerolog.WarnLevel,
 		codes.ResourceExhausted:  zerolog.ErrorLevel,
 		codes.FailedPrecondition: zerolog.WarnLevel,
