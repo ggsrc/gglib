@@ -1,6 +1,6 @@
 module github.com/ggsrc/gglib/zerolog
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/agoda-com/opentelemetry-go/otelzerolog v0.1.0

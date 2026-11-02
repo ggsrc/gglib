@@ -17,8 +17,8 @@ script.
   on branch `tobin/dev`, not on `main`.
 - Internal requires pointed at five different January commits, so a consumer
   that upgraded only `app` received older sibling code.
-- `mctx` required `bytedance/sonic v1.14.2`, which does not compile on Go 1.26;
-  `app`, `grpc` and `interceptor` inherited it.
+- `mctx` required `bytedance/sonic v1.14.2`, which does not compile on Go 1.26
+  or later; `app`, `grpc` and `interceptor` inherited it.
 - `otel/` had Go files but no go.mod (deleted in 15e1b11, #5), so it belonged
   to a synthesized root module and could not be imported as a module.
 - `zerolog/log` `TestLog` panicked unless `UPTRACE_DSN` or `UPTRACE_DISABLED`
@@ -26,7 +26,7 @@ script.
 
 ## 2. Behavior after this change
 
-- Every module (17, including `otel`) declares `go 1.26.0` and passes
+- Every module (17, including `otel`) declares `go 1.27.0` and passes
   `go mod tidy -diff`, `go build -mod=readonly`, `go vet`, `go test -race` and
   `golangci-lint` on its own with `GOWORK=off`.
 - Every internal require points at the current `main` commit `b474e43`
@@ -43,7 +43,11 @@ Approved on the plan page (mono-meta#1115, 2026-11-02):
 
 - D2: Apache-2.0. The LICENSE is the standard text, the same file the other
   ggsrc repositories use.
-- D3: Go baseline 1.26 (`go 1.26.0`; production images build with 1.26.10).
+- Go baseline 1.27 (`go 1.27.0`). D3 originally chose 1.26; Yumin raised it to
+  1.27 on 2026-11-02. Consumer impact: production images currently build with
+  Go 1.26.10, so each service moves its toolchain (Dockerfile, CI) and its own
+  `go` directive to 1.27 when it adopts gglib `v0.1.0`. Raising a service's
+  `go` directive also changes its GODEBUG defaults; check that per service.
 - D4: `otel` becomes a real module.
 - D5: the first release tags every module `v0.1.0` on one commit. Pointing
   internal requires at current `main` follows from D5: every consumer moves to
@@ -52,12 +56,12 @@ Approved on the plan page (mono-meta#1115, 2026-11-02):
   `resource/cache → goodns` were strictly broken; the rest are aligned for
   consistency.
 - Third-party versions are not upgraded here except `sonic` (needed to build
-  on Go 1.26). Vulnerable dependencies are the next PR.
+  on Go 1.26+). Vulnerable dependencies are the next PR.
 - `go.work.sum` is deleted and ignored. `make work` creates a local workspace.
 
 ## 4. Changes
 
-- `*/go.mod`, `*/go.sum`: `go 1.26.0`; internal requires at `b474e43`;
+- `*/go.mod`, `*/go.sum`: `go 1.27.0`; internal requires at `b474e43`;
   `sonic v1.15.0` (`sonic/loader v0.5.0`) in mctx, interceptor, grpc, app;
   `app` lists `google.golang.org/grpc` as a direct require; tidy.
 - `otel/go.mod`, `otel/go.sum`: restored from 15e1b11^, then tidied.
@@ -66,13 +70,16 @@ Approved on the plan page (mono-meta#1115, 2026-11-02):
   as an indirect requirement.
 - `Makefile`: `GOWORK=off` for every target; new `modules`, `tidy-check`,
   `build`, `vet`, `test`, `work`; `go-mod-tidy` kept as an alias.
-- `.golangci.yml`: `run.go: '1.26'`. `.gitignore`: `go.work.sum`.
+- `.golangci.yml`: `run.go: '1.27'`; `goconst` excluded in tests (like `gosec`),
+  because golangci-lint v2.14 flags repeated literals in table tests.
+  `.gitignore`: `go.work.sum`.
 - New: `LICENSE`, `README.md`, `SECURITY.md`, `.github/CODEOWNERS`.
 
 ## 5. Verification
 
-Toolchain `GOTOOLCHAIN=go1.26.10`, `GOWORK=off`, golangci-lint v2.8.0 built
-with go1.26.10.
+Toolchain Go 1.27.3 (`GOTOOLCHAIN=local`), `GOWORK=off`, golangci-lint
+v2.14.0 built with go1.27.3 (v2.8.0 cannot load Go 1.27 modules). The same
+checks also passed earlier on Go 1.26.10 with the `go 1.26.0` directive.
 
 - `make tidy-check build vet` — all 17 modules pass.
 - `make test` — all 17 modules pass, with no Uptrace variables set.

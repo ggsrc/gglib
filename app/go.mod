@@ -1,6 +1,6 @@
 module github.com/ggsrc/gglib/app
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/ggsrc/gglib/grpc v0.0.0-20261013145132-b474e434e730

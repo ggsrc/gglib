@@ -10,7 +10,7 @@ run:
   # but default dirs are skipped independently of this option's value (see skip-dirs-use-default).
   # "/" will be replaced by current OS file path separator to properly work on Windows.
   modules-download-mode: readonly # 
-  go: '1.26'
+  go: '1.27'
 
 linters:
   enable: # 
@@ -38,6 +38,7 @@ linters:
       - path: _test\.go
         linters:
           - gosec
+          - goconst
     paths:
       - pkg/generated
       - pkg/internal

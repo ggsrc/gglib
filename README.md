@@ -58,7 +58,7 @@ Release order, lowest first:
 
 ## Go version
 
-Every module declares `go 1.26.0`, the oldest Go release gglib supports.
+Every module declares `go 1.27.0`, the oldest Go release gglib supports.
 
 ## Development
 
