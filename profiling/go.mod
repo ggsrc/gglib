@@ -1,10 +1,10 @@
 module github.com/ggsrc/gglib/profiling
 
-go 1.24.7
+go 1.26.0
 
 require (
 	dario.cat/mergo v1.0.2
-	github.com/ggsrc/gglib/env v0.0.0-20260115035749-d92191be9284
+	github.com/ggsrc/gglib/env v0.0.0-20261013145132-b474e434e730
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/kelseyhightower/envconfig v1.4.0
 )

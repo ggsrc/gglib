@@ -15,8 +15,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
-github.com/ggsrc/gglib/goodns v0.0.0-20250921140246-d7f8c73e78e6 h1:jdJwvSHDDCX+BvJ2Ed+fd60LZQhpjdO+4buKetq0dPA=
-github.com/ggsrc/gglib/goodns v0.0.0-20250921140246-d7f8c73e78e6/go.mod h1:sZLdiiHs9pJ71BIWX45o5D6lRdna+9d3qJm1tNfwBCQ=
+github.com/ggsrc/gglib/goodns v0.0.0-20261013145132-b474e434e730 h1:D+OBOe8y+d7YVtgaeoXt6xoxt+w9nOw+pjroxDqDHk0=
+github.com/ggsrc/gglib/goodns v0.0.0-20261013145132-b474e434e730/go.mod h1:hl1E/aI8/aS/kSuqwFbaubo5M3SnT+Hz9tKmiP3x6Ek=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
 github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=

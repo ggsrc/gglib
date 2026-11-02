@@ -1,0 +1,86 @@
+# gglib
+
+gglib is a set of small Go modules for building gRPC/HTTP services: application
+lifecycle, gRPC server and client setup, interceptors, logging, tracing,
+metrics, health checks, and wrappers for Postgres, Redis and Hatchet.
+
+Each directory with a `go.mod` is its own module, versioned and released on its
+own. Depend only on the modules you use.
+
+## Modules
+
+| Module | What it provides | Depends on (gglib) |
+|---|---|---|
+| [`app`](app) | Application lifecycle: starts the gRPC, metrics and health servers, handles signals, drains RPCs, then closes resources | grpc, health, metric, resource, zerolog |
+| [`env`](env) | Environment name, host name, service name and build information | — |
+| [`goodns`](goodns) | DNS A-record lookups against a chosen DNS server | — |
+| [`grpc`](grpc) | gRPC server and client constructors with the standard interceptor chain | env, interceptor |
+| [`health`](health) | HTTP liveness and readiness endpoints | — |
+| [`http`](http) | Instrumented HTTP client | env, zerolog |
+| [`interceptor`](interceptor) | gRPC and HTTP interceptors: context propagation, logging, error logging, panic recovery, rate limiting, metadata helpers | mctx, zerolog |
+| [`mctx`](mctx) | Request context values (application context, user, location) | — |
+| [`metric`](metric) | Prometheus metrics server | — |
+| [`otel`](otel) | OpenTelemetry setup for traces, metrics and logs over OTLP | env, zerolog |
+| [`profiling`](profiling) | Continuous profiling with Pyroscope | env |
+| [`resource`](resource) | Shared-resource registry: init, start, stop and health checks | zerolog |
+| [`resource/cache`](resource/cache) | Redis and two-level (Redis + in-memory) cache resources | goodns |
+| [`resource/hatchet`](resource/hatchet) | Hatchet client resource | — |
+| [`resource/wpgx`](resource/wpgx) | Postgres pool resource built on [wpgx](https://github.com/stumble/wpgx) | zerolog |
+| [`utils`](utils) | Tracing helpers | env |
+| [`zerolog`](zerolog) | zerolog setup with trace correlation, and a context-aware `log` package | env |
+
+Install a module with:
+
+```sh
+go get github.com/ggsrc/gglib/grpc@latest
+```
+
+## Versioning
+
+- Every module is tagged on its own as `<module directory>/vX.Y.Z`, for example
+  `grpc/v0.1.0` or `resource/wpgx/v0.1.0`. There are no repository-wide `v*`
+  tags.
+- All modules are at major version 0. A minor bump (`v0.1.0` → `v0.2.0`) may
+  contain breaking changes; a patch bump does not. Behaviour changes are listed
+  in each module's changelog.
+- A pushed tag is never moved or deleted. A bad release is fixed by the next
+  patch release, which `retract`s the bad version in its `go.mod`.
+- When a change spans modules, the lower module is released first, and the
+  higher module then requires that new version.
+
+Release order, lowest first:
+
+1. env, goodns, health, mctx, metric, resource/hatchet
+2. zerolog, utils, profiling, resource/cache
+3. http, interceptor, resource, resource/wpgx, otel
+4. grpc
+5. app
+
+## Go version
+
+Every module declares `go 1.26.0`, the oldest Go release gglib supports.
+
+## Development
+
+Modules are always checked on their own with `GOWORK=off`, so that each
+`go.mod` is complete without a workspace. The Makefile runs a target in every
+module:
+
+```sh
+make tidy-check   # go mod tidy -diff
+make build        # go build -mod=readonly ./...
+make vet
+make test         # go test -race
+make lint         # golangci-lint
+```
+
+For changes that span modules, `make work` creates a local `go.work` over all
+modules. `go.work` and `go.work.sum` are not committed.
+
+## Security
+
+See [SECURITY.md](SECURITY.md).
+
+## License
+
+[Apache License 2.0](LICENSE)

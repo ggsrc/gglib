@@ -1,3 +1,3 @@
 module github.com/ggsrc/gglib/env
 
-go 1.24.7
+go 1.26.0

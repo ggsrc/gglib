@@ -14,10 +14,10 @@ github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSV
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/ggsrc/gglib/env v0.0.0-20260114004024-193fc3768c94 h1:2x4DzPnsrz6mSmikjwLAzKHfudBHvxuFjIviHquagw4=
-github.com/ggsrc/gglib/env v0.0.0-20260114004024-193fc3768c94/go.mod h1:UrDfBSsMXWAj4AKxt3D4boR6M7It8V+Fj9YMXxCIz8Q=
-github.com/ggsrc/gglib/zerolog v0.0.0-20260114004024-193fc3768c94 h1:OgzYD4JGcXT/8OBcDo3qTIsgy4wRoAAX7nZqFwzeS3A=
-github.com/ggsrc/gglib/zerolog v0.0.0-20260114004024-193fc3768c94/go.mod h1:NV38nvWfkd1dHAkK/Ffg+pkusrI6W5HhXxGa/WI1lUY=
+github.com/ggsrc/gglib/env v0.0.0-20261013145132-b474e434e730 h1:7XmAYU1AxrQQnOHV7aWnt98z7hGdi2CFeG1xsRQk3UU=
+github.com/ggsrc/gglib/env v0.0.0-20261013145132-b474e434e730/go.mod h1:UrDfBSsMXWAj4AKxt3D4boR6M7It8V+Fj9YMXxCIz8Q=
+github.com/ggsrc/gglib/zerolog v0.0.0-20261013145132-b474e434e730 h1:Uxq3qMbQv0LTI19UMrilhGSdbVJXkXOepJXD/yFUbBk=
+github.com/ggsrc/gglib/zerolog v0.0.0-20261013145132-b474e434e730/go.mod h1:wf4jhHQGjGP8Hb0QCpz81b0LfKPtMUYoDQfSvwxuUu8=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
 github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=

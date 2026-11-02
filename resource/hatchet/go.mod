@@ -1,6 +1,6 @@
 module github.com/ggsrc/gglib/resource/hatchet
 
-go 1.24.7
+go 1.26.0
 
 require github.com/hatchet-dev/hatchet v0.73.12
 
