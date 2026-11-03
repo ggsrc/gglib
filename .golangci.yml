@@ -169,9 +169,6 @@ linters:
       # named in its comment (alva-ai/mono-meta#1115, gglib route).
       # ------------------------------------------------------------------
 
-      # otel: replaced by the single observability entry point (G5).
-      - path: ^otel/
-        linters: [contextcheck, errcheck, exhaustive, forcetypeassert, gocritic, nolintlint, predeclared, revive, spancheck, staticcheck]
 
       # utils: replaced by the single observability entry point (G5).
       - path: ^utils/
