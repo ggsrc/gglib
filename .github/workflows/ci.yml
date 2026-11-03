@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly, so that new vulnerability advisories show up without a PR.
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GO_VERSION: "1.27.x"
+  GOLANGCI_LINT_VERSION: v2.14.0
+  GOVULNCHECK_VERSION: v1.9.0
+  GOWORK: "off"
+  GOTOOLCHAIN: local
+
+jobs:
+  repo:
+    name: repository checks
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.modules.outputs.modules }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+      - id: modules
+        name: list modules
+        run: |
+          modules=$(find . -name go.mod -not -path './.git/*' -exec dirname {} \; | sed 's|^\./||' | sort)
+          echo "modules=$(printf '%s\n' $modules | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+          for m in $modules; do
+            test -s "$m/.coverage-floor" || { echo "::error::$m has no $m/.coverage-floor"; exit 1; }
+            grep -qF "\"/$m\"" .github/dependabot.yml || { echo "::error::$m is missing from .github/dependabot.yml"; exit 1; }
+          done
+      - name: sibling replaces are complete
+        run: |
+          ./scripts/replaces.sh
+          git diff --exit-code -- '*go.mod' '*go.sum'
+
+  module:
+    name: ${{ matrix.module }}
+    needs: repo
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.repo.outputs.modules) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+      - name: go mod tidy
+        run: go mod tidy -diff
+      - name: build
+        run: go build -mod=readonly ./...
+      - name: vet
+        run: go vet -mod=readonly ./...
+      - name: test
+        run: go test -mod=readonly -race -count=1 -covermode=atomic -coverprofile=coverage.out ./...
+      - name: coverage floor
+        env:
+          MODULE: ${{ matrix.module }}
+        run: |
+          "$GITHUB_WORKSPACE/scripts/coverage-check.sh" "$MODULE" coverage.out
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          working-directory: ${{ matrix.module }}
+      - name: govulncheck
+        run: go run "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" ./...
+
+  # The single required status check.
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs: [repo, module]
+    runs-on: ubuntu-latest
+    steps:
+      - name: all jobs passed
+        run: |
+          test "${{ needs.repo.result }}" = success
+          test "${{ needs.module.result }}" = success

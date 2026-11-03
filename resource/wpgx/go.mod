@@ -13,7 +13,6 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/ggsrc/gglib/env v0.0.0-20261013145132-b474e434e730 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -37,4 +36,10 @@ require (
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
+)
+
+// Sibling modules in this repository (scripts/replaces.sh).
+replace (
+	github.com/ggsrc/gglib/env => ../../env
+	github.com/ggsrc/gglib/zerolog => ../../zerolog
 )

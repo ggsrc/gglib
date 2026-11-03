@@ -16,3 +16,6 @@ require (
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 )
+
+// Sibling modules in this repository (scripts/replaces.sh).
+replace github.com/ggsrc/gglib/env => ../env

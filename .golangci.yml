@@ -155,7 +155,7 @@ linters:
       - std-error-handling
     rules:
       - path: _test\.go
-        linters: [errcheck, forcetypeassert, goconst, godot, gosec, nilnil, revive]
+        linters: [errcheck, fatcontext, forcetypeassert, goconst, godot, gosec, nilnil, revive]
 
       # zerolog/log mirrors github.com/rs/zerolog/log: these functions return
       # an event for the caller to dispatch, which zerologlint cannot see, and
@@ -169,19 +169,27 @@ linters:
       # named in its comment (alva-ai/mono-meta#1115, gglib route).
       # ------------------------------------------------------------------
 
-      # otel and utils: replaced by the single observability entry point (G5).
-      - path: ^(otel|utils)/
+      # otel: replaced by the single observability entry point (G5).
+      - path: ^otel/
         linters: [contextcheck, errcheck, exhaustive, forcetypeassert, gocritic, nolintlint, predeclared, revive, spancheck, staticcheck]
+
+      # utils: replaced by the single observability entry point (G5).
+      - path: ^utils/
+        linters: [contextcheck, errcheck, exhaustive, forcetypeassert, gocritic, nolintlint, predeclared, revive, spancheck, staticcheck]
+
       # app: telemetry and logging setup move to the G5 entry point.
       - path: ^app/app\.go
         linters: [contextcheck]
+
       # env: init() becomes lazy, explicit initialization (env PR).
       - path: ^env/
         linters: [gochecknoinits]
+
       # resource: the Printf goes away when start errors are logged properly
       # (resource PR).
       - path: ^resource/resource\.go
         linters: [forbidigo]
+
       # resource/cache: Init returns errors instead of exiting, takes the
       # caller's context, and the ElastiCache TLS override is removed
       # (resource/cache PR).

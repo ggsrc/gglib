@@ -21,7 +21,6 @@ require (
 	github.com/bytedance/sonic/loader v0.5.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
-	github.com/ggsrc/gglib/env v0.0.0-20261013145132-b474e434e730 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
@@ -34,4 +33,11 @@ require (
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261026165753-2ffab32bce7e // indirect
+)
+
+// Sibling modules in this repository (scripts/replaces.sh).
+replace (
+	github.com/ggsrc/gglib/env => ../env
+	github.com/ggsrc/gglib/mctx => ../mctx
+	github.com/ggsrc/gglib/zerolog => ../zerolog
 )
