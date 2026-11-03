@@ -125,7 +125,7 @@ func TestTracesExportedWithStandardResource(t *testing.T) {
 	assert.Equal(t, "work", req.GetResourceSpans()[0].GetScopeSpans()[0].GetSpans()[0].GetName())
 }
 
-func TestMetricsAndLogsOffByDefault(t *testing.T) {
+func TestDefaultSignalsAreTracesAndLogs(t *testing.T) {
 	cleanEnv(t)
 	rcv := startReceiver(t)
 	shutdown := setup(t)
@@ -138,6 +138,21 @@ func TestMetricsAndLogsOffByDefault(t *testing.T) {
 	var rec otellog.Record
 	rec.SetBody(attribute.StringValue("hello"))
 	otel.GetLoggerProvider().Logger("test").Emit(t.Context(), rec)
+	require.NoError(t, shutdown(t.Context()))
+
+	assert.Equal(t, map[string]int{"/v1/traces": 1, "/v1/logs": 1}, rcv.paths(), "metrics are off by default (G10), logs on (G11)")
+}
+
+func TestLogsCanBeTurnedOff(t *testing.T) {
+	cleanEnv(t)
+	rcv := startReceiver(t)
+	shutdown := setup(t, WithLogs(false))
+
+	var rec otellog.Record
+	rec.SetBody(attribute.StringValue("hello"))
+	otel.GetLoggerProvider().Logger("test").Emit(t.Context(), rec)
+	_, span := otel.Tracer("test").Start(t.Context(), "work")
+	span.End()
 	require.NoError(t, shutdown(t.Context()))
 
 	assert.Equal(t, map[string]int{"/v1/traces": 1}, rcv.paths())

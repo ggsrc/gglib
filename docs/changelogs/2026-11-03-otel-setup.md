@@ -17,8 +17,8 @@ proven config bugs.
 
 `otel.Setup(ctx, opts...) (ShutdownFunc, error)`; see the module changelog
 for the full list. Highlights: always an SDK tracer provider (trace ids for
-logs); OTLP/HTTP from standard env; traces on, metrics and logs off by
-default (G10, G11 recommendations; `DefaultMetrics`/`DefaultLogs`); one
+logs); OTLP/HTTP from standard env; traces and logs on, metrics off
+by default (G10 = A, `DefaultMetrics`; G11 = B, `DefaultLogs`); one
 resource contract; composable options; ordered, idempotent shutdown;
 Prometheus untouched.
 
@@ -27,8 +27,11 @@ No consumer uses `gglib/otel` today; services adopt it through `gglib/app`
 
 ## 3. Decisions
 
-- G5 = A. G10 and G11 are still open; if Yumin chooses differently, only
-  `DefaultMetrics`/`DefaultLogs` change.
+- G5 = A. G10 = A: OTel metrics off by default, Prometheus unchanged.
+  G11 = B: OTLP logs on by default (Yumin, 2026-11-03), so traces in Uptrace
+  show their log records. Cost, accepted: logs are stored in Loki and again
+  behind the collector, and collector traffic grows; Alva checks collector
+  capacity before services upgrade (mono-meta#1116).
 - No Uptrace DSN path: every deployment already points
   `OTEL_EXPORTER_OTLP_ENDPOINT` at the in-cluster collector.
 - `resource.Default()` is not used: it caches the environment of its first

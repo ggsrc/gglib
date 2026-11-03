@@ -40,11 +40,11 @@ import (
 
 // Defaults for the signals other than traces. Metrics are off because
 // dashboards, alerts and autoscaling read Prometheus, not OTel metrics
-// (decision G10); logs are off because every service already ships stdout
-// logs to Loki (decision G11).
+// (decision G10). Logs are on, so that a trace in Uptrace shows its log
+// records (decision G11); stdout logs still reach Loki as before.
 const (
 	DefaultMetrics = false
-	DefaultLogs    = false
+	DefaultLogs    = true
 )
 
 // ShutdownFunc flushes and stops everything Setup installed. Only its first

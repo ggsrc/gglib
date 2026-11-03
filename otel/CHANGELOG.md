@@ -23,8 +23,8 @@ the last commit before the first release work.
     baggage propagator, so spans have real ids even when nothing is exported;
   - exports over OTLP/HTTP to the endpoint in `OTEL_EXPORTER_OTLP_*`
     (no endpoint, or `OTEL_SDK_DISABLED=true`: nothing is exported);
-  - traces on by default; metrics (`WithMetrics`, G10) and logs
-    (`WithLogs`, G11) off by default; runtime metrics opt-in;
+  - traces and logs (`WithLogs`, G11) on by default; metrics
+    (`WithMetrics`, G10) off by default; runtime metrics opt-in;
   - one resource for every service: `service.name`, `service.version`,
     `deployment.environment.name` (plus `deployment.environment` for
     Uptrace), host, and `k8s.pod.name`/`k8s.namespace.name` from
