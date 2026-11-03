@@ -2,8 +2,6 @@ package grpc
 
 import (
 	"google.golang.org/grpc"
-
-	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 )
 
 type (
@@ -20,14 +18,6 @@ func WithClientVerbose(verbose bool) ClientOption {
 	}
 }
 
-// WithClientPanicHandler sets the handler called when a client interceptor
-// recovers from a panic.
-func WithClientPanicHandler(panicHandler recoveryinterceptor.PanicHandler) ClientOption {
-	return func(c *ClientConfig) {
-		c.panicHandler = panicHandler
-	}
-}
-
 // WithClientUnaryInterceptors appends unary interceptors after the standard
 // ones.
 func WithClientUnaryInterceptors(ii ...grpc.UnaryClientInterceptor) ClientOption {
@@ -41,8 +31,8 @@ func WithServerVerbose(verbose bool) ServerOption {
 	}
 }
 
-// WithServerDebug records request and response bodies in spans, as is always
-// done outside production.
+// WithServerDebug records request and response bodies in spans. Bodies can
+// contain passwords and tokens; it is off unless set.
 func WithServerDebug(debug bool) ServerOption {
 	return func(c *ServerConfig) {
 		c.Debug = debug
@@ -56,14 +46,6 @@ func WithServerPort(port int) ServerOption {
 	}
 }
 
-// WithServerPanicHandler sets the handler called when the server recovers from
-// a panic in a unary call.
-func WithServerPanicHandler(panicHandler recoveryinterceptor.PanicHandler) ServerOption {
-	return func(c *ServerConfig) {
-		c.panicHandler = panicHandler
-	}
-}
-
 // WithServerUnaryInterceptors appends unary interceptors after the standard
 // ones.
 func WithServerUnaryInterceptors(ii ...grpc.UnaryServerInterceptor) ServerOption {
@@ -71,7 +53,9 @@ func WithServerUnaryInterceptors(ii ...grpc.UnaryServerInterceptor) ServerOption
 }
 
 // WithServerGRPCServerOptions appends options passed to grpc.NewServer after
-// the defaults.
+// the defaults. Interceptors added with grpc.ChainUnaryInterceptor or
+// grpc.ChainStreamInterceptor run after the standard chain; one added with
+// grpc.UnaryInterceptor or grpc.StreamInterceptor runs before it.
 func WithServerGRPCServerOptions(opts ...grpc.ServerOption) ServerOption {
 	return func(c *ServerConfig) { c.gRPCServerOptions = append(c.gRPCServerOptions, opts...) }
 }

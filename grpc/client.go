@@ -7,6 +7,7 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -22,7 +23,6 @@ import (
 type ClientConfig struct {
 	Verbose bool `default:"false"`
 
-	panicHandler      recoveryinterceptor.PanicHandler
 	unaryInterceptors []grpc.UnaryClientInterceptor
 }
 
@@ -37,9 +37,7 @@ func NewClientWithOptions(opts ...ClientOption) *Client {
 	for _, opt := range opts {
 		opt(conf)
 	}
-	return &Client{
-		conf: conf,
-	}
+	return &Client{conf: conf}
 }
 
 // NewClient returns a Client configured from environment variables with the
@@ -47,9 +45,7 @@ func NewClientWithOptions(opts ...ClientOption) *Client {
 func NewClient(envPrefix string) *Client {
 	conf := &ClientConfig{}
 	envconfig.MustProcess(envPrefix, conf)
-	return &Client{
-		conf: conf,
-	}
+	return &Client{conf: conf}
 }
 
 // NewClientWithDefaultEnvPrefix returns a Client configured from GRPC_*
@@ -59,94 +55,46 @@ func NewClientWithDefaultEnvPrefix() *Client {
 }
 
 // Dial creates a client connection to addr. The connection uses gzip,
-// insecure transport credentials and the standard interceptors; opts are
-// applied after the defaults.
+// insecure transport credentials (in-cluster traffic) and the standard
+// interceptors, outermost first: recovery → error log → request context →
+// call log → metrics → WithClientUnaryInterceptors. opts are applied after
+// the defaults; an interceptor passed in opts with grpc.WithUnaryInterceptor
+// runs before the standard chain instead of replacing it.
 func (c *Client) Dial(
-	ctx context.Context,
+	_ context.Context,
 	addr string,
 	opts ...grpc.DialOption,
-) (conn *grpc.ClientConn, err error) {
+) (*grpc.ClientConn, error) {
 	logger := zerolog.DefaultContextLogger
 	if logger == nil {
-		logger = zerolog.Ctx(ctx)
+		logger = &log.Logger
 	}
 
-	loggableEvents := []logging.LoggableEvent{}
+	var loggableEvents []logging.LoggableEvent
 	if c.conf.Verbose {
 		loggableEvents = append(loggableEvents, logging.StartCall, logging.FinishCall)
 	}
 
-	interceptors := []grpc.UnaryClientInterceptor{
-		recoveryinterceptor.UnaryClientInterceptor(c.conf.panicHandler),
+	unary := []grpc.UnaryClientInterceptor{
+		recoveryinterceptor.UnaryClientInterceptor(),
 		errloginterceptor.UnaryClientInterceptor(),
 		contextinterceptor.ContextUnaryClientInterceptor(),
 		logging.UnaryClientInterceptor(
-			InterceptorLogger(*logger),
+			interceptorLogger(*logger),
 			logging.WithLogOnEvents(loggableEvents...),
 		),
 		grpc_prometheus.UnaryClientInterceptor,
 	}
-	interceptors = append(interceptors, c.conf.unaryInterceptors...)
+	unary = append(unary, c.conf.unaryInterceptors...)
 
-	defaultOpts := []grpc.DialOption{
+	dialOpts := make([]grpc.DialOption, 0, 5+len(opts))
+	dialOpts = append(dialOpts,
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
-		grpc.WithUnaryInterceptor(chainUnaryClient(interceptors...)),
-
-		grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
+		grpc.WithChainUnaryInterceptor(unary...),
+		grpc.WithChainStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	}
-	opts = append(defaultOpts, opts...)
-
-	return grpc.NewClient(addr, opts...)
-}
-
-// chainUnaryClient is adapted from
-// https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/chain.go.
-func chainUnaryClient(interceptors ...grpc.UnaryClientInterceptor) grpc.UnaryClientInterceptor {
-	n := len(interceptors)
-
-	if n > 1 {
-		lastI := n - 1
-		return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-			var (
-				chainHandler grpc.UnaryInvoker
-				curI         int
-			)
-
-			chainHandler = func(currentCtx context.Context, currentMethod string, currentReq, currentRepl any, currentConn *grpc.ClientConn, currentOpts ...grpc.CallOption) error {
-				if curI == lastI {
-					return invoker(
-						currentCtx,
-						currentMethod,
-						currentReq,
-						currentRepl,
-						currentConn,
-						currentOpts...)
-				}
-				curI++
-				err := interceptors[curI](
-					currentCtx,
-					currentMethod,
-					currentReq,
-					currentRepl,
-					currentConn,
-					chainHandler,
-					currentOpts...)
-				curI--
-				return err
-			}
-
-			return interceptors[0](ctx, method, req, reply, cc, chainHandler, opts...)
-		}
-	}
-
-	if n == 1 {
-		return interceptors[0]
-	}
-
-	// n == 0; Dummy interceptor maintained for backward compatibility to avoid returning nil.
-	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		return invoker(ctx, method, req, reply, cc, opts...)
-	}
+	)
+	dialOpts = append(dialOpts, opts...)
+	return grpc.NewClient(addr, dialOpts...)
 }
