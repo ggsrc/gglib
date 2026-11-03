@@ -15,6 +15,37 @@ the last commit before the first release work.
 - `go.mod` is complete on its own; sibling gglib modules are required at
   matching versions.
 
+### Added
+
+- **`Setup(opts...)`: one call configures logging (G5).** It sets the global
+  logger and `zerolog.DefaultContextLogger`:
+  - one level knob: `WithLevel`, else `LOG_LEVEL`, else the deprecated
+    `LOGGER_LEVEL`, else info; applied as the global level;
+  - JSON in clusters, readable console output locally (`FormatAuto`);
+    `LOG_FORMAT=json|console` or `WithFormat` override; color only locally;
+  - `trace_id` and `span_id` on every event whose context holds a span;
+    caller field; millisecond timestamps; stack traces for errors;
+  - each record also goes to the global OpenTelemetry logger provider, with
+    its message, level, time, `trace_id`/`span_id` as the record's trace
+    context, and every other field as an attribute. On by default
+    (`DefaultOTLP`, decision G11); `WithOTLP(false)` turns it off. Records
+    leave the process only when gglib/otel exports logs. Cost: about 5 µs
+    and 24 allocations per line (`BenchmarkOTLPWriter`).
+  JSON in clusters is decision G9.
+
+### Removed
+
+- The agoda OTLP bridge (`WithOTLP()` without arguments, `WithBatchSize`,
+  `LoggerOption`). It read zerolog's private buffer by reflection (about 46
+  times slower per event) and pulled gRPC and protobuf into the module.
+  `WithOTLP(true)` replaces it.
+
+### Deprecated
+
+- `InitLogger`: kept with its previous behavior for gglib/app (sets the
+  level and the default context logger, leaves the service's own logger
+  alone); use `Setup`.
+
 ### Fixed
 
 - **`log.Ctx` no longer drops events silently.** With no logger in the
