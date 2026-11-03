@@ -181,9 +181,6 @@ linters:
       - path: ^app/app\.go
         linters: [contextcheck]
 
-      # env: init() becomes lazy, explicit initialization (env PR).
-      - path: ^env/
-        linters: [gochecknoinits]
 
       # resource: the Printf goes away when start errors are logged properly
       # (resource PR).

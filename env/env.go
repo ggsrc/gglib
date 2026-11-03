@@ -1,41 +1,72 @@
 package env
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
-// IsProduction reports whether ENV is "prd".
-func IsProduction() bool {
-	return os.Getenv("ENV") == "prd"
+// Canonical environment names returned by Env.
+const (
+	Production = "prd"
+	Staging    = "stg"
+	Beta       = "beta"
+	Test       = "test"
+	Local      = "local"
+)
+
+// aliases maps every accepted spelling, after trimming and lower-casing, to
+// its canonical name.
+var aliases = map[string]string{
+	"":           Local,
+	"local":      Local,
+	"prd":        Production,
+	"prod":       Production,
+	"production": Production,
+	"stg":        Staging,
+	"staging":    Staging,
+	"beta":       Beta,
+	"test":       Test,
 }
 
-// IsBeta reports whether ENV is "beta".
-func IsBeta() bool {
-	return os.Getenv("ENV") == "beta"
-}
-
-// IsStaging reports whether ENV is "stg".
-func IsStaging() bool {
-	return os.Getenv("ENV") == "stg"
-}
-
-// IsLocal reports whether ENV is unset or empty.
-func IsLocal() bool {
-	return os.Getenv("ENV") == ""
-}
-
-// IsUnitTest reports whether ENV is "test".
-func IsUnitTest() bool {
-	return os.Getenv("ENV") == "test"
-}
-
-// Env returns ENV, or OTEL_DEPLOYMENT_ENVIRONMENT when ENV is empty, or
-// "local" when both are empty.
+// Env returns the deployment environment, read from ENV or, when ENV is
+// empty, from OTEL_DEPLOYMENT_ENVIRONMENT. Known spellings are returned in
+// canonical form ("prd", "stg", "beta", "test", "local"; an empty value is
+// "local"). Any other value is returned trimmed and lower-cased, and is
+// treated as production by IsProduction.
 func Env() string {
-	e := os.Getenv("ENV")
-	if e == "" {
-		e = os.Getenv("OTEL_DEPLOYMENT_ENVIRONMENT")
+	raw := os.Getenv("ENV")
+	if strings.TrimSpace(raw) == "" {
+		raw = os.Getenv("OTEL_DEPLOYMENT_ENVIRONMENT")
 	}
-	if e == "" {
-		return "local"
+	v := strings.ToLower(strings.TrimSpace(raw))
+	if canonical, ok := aliases[v]; ok {
+		return canonical
 	}
-	return e
+	return v
 }
+
+// IsProduction reports whether the environment is production, or is a value
+// Env does not recognize. Unrecognized values count as production so that
+// behavior meant for other environments, such as recording request bodies,
+// never turns on by mistake.
+func IsProduction() bool {
+	switch Env() {
+	case Staging, Beta, Test, Local:
+		return false
+	default:
+		return true
+	}
+}
+
+// IsStaging reports whether the environment is staging.
+func IsStaging() bool { return Env() == Staging }
+
+// IsBeta reports whether the environment is beta.
+func IsBeta() bool { return Env() == Beta }
+
+// IsUnitTest reports whether the environment is test.
+func IsUnitTest() bool { return Env() == Test }
+
+// IsLocal reports whether the environment is local, that is, whether ENV and
+// OTEL_DEPLOYMENT_ENVIRONMENT are both empty or "local".
+func IsLocal() bool { return Env() == Local }
