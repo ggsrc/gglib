@@ -3,6 +3,7 @@ package log_test
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func TestLog(t *testing.T) {
-	otelzerolog.InitLogger(true)
+	otelzerolog.Setup(otelzerolog.WithLevel(zerolog.DebugLevel))
 	traceID, err := trace.TraceIDFromHex("17d023447a330049126f26a9996249c0")
 	require.NoError(t, err)
 	spaceID, err := trace.SpanIDFromHex("fd1054dfa5132df5")

@@ -1,7 +1,3 @@
-github.com/agoda-com/opentelemetry-go/otelzerolog v0.1.0 h1:Pg2aWvqU6oAiqCF9mJlWLR1IKnJsKy6GqREviTSRkcU=
-github.com/agoda-com/opentelemetry-go/otelzerolog v0.1.0/go.mod h1:qQ9waMktaEHMkjB4TASRo5dEAHKrp+48yx4LGsDXepI=
-github.com/agoda-com/opentelemetry-logs-go v0.6.0 h1:PdnNbW2a5vp4VWasIGVHJ85/4Eu0kZfLs3ySuitLN20=
-github.com/agoda-com/opentelemetry-logs-go v0.6.0/go.mod h1:zPrxWeyxZ8QRWJFNBFJ2zeWjJu0OuGG+Ow4KYEGEA5o=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/bytedance/gopkg v0.1.4 h1:oZnQwnX82KAIWb7033bEwtxvTqXcYMxDBaQxo5JJHWM=
@@ -10,8 +6,6 @@ github.com/bytedance/sonic v1.15.5 h1:gKWTBfYCIQpQHZ7LpwGf9Gj3N88ZN0G/GaB3EQhiGX
 github.com/bytedance/sonic v1.15.5/go.mod h1:nn7CoK5W+LKbl22XGJrXg6SwzaFAcVs89miqzkqDwOU=
 github.com/bytedance/sonic/loader v0.5.3 h1:ziVGAbXQtLoaot/M6YQxntGkekxz6B/DyuJVwnTbMAA=
 github.com/bytedance/sonic/loader v0.5.3/go.mod h1:AR4NYCk5DdzZizZ5djGqQ92eEhCCcdf5x77udYiSJRo=
-github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
-github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=

@@ -70,13 +70,11 @@ func (a *App) Start(ctx context.Context) {
 			uptrace.WithServiceVersion(a.options.ServerVersion),
 			uptrace.WithDSN(a.options.OTELDSN),
 		)
-		zerolog.InitLogger(
-			a.options.Debug,
-			zerolog.WithOTLP(),
-			zerolog.WithBatchSize(a.options.OTELBatchSize),
-		)
+		// Uptrace installs the global logger provider; the zerolog hook feeds
+		// it. Batching is the SDK's (OTELBatchSize no longer applies).
+		zerolog.InitLogger(a.options.Debug, zerolog.WithOTLP(true)) //nolint:staticcheck // moves to Setup in the app rework (G9)
 	} else {
-		zerolog.InitLogger(a.options.Debug)
+		zerolog.InitLogger(a.options.Debug) //nolint:staticcheck // moves to Setup in the app rework (G9)
 	}
 	var wg sync.WaitGroup
 	grpcErrCh, healthErrCh := make(chan error, 1),
