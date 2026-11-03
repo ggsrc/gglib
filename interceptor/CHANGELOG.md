@@ -15,6 +15,31 @@ the last commit before the first release work.
 - `go.mod` is complete on its own; sibling gglib modules are required at
   matching versions.
 
+### Changed
+
+- **Request-header forwarding (G3).** `ContextUnaryClientInterceptor` no
+  longer adds every incoming header to the outgoing call:
+  - a key the caller sets explicitly replaces the incoming value instead of
+    being added next to it (every reader takes the first value, so results
+    do not change);
+  - transport headers (`grpc-*`, `user-agent`, `content-type`, `:authority`)
+    are never forwarded (`grpc-accept-encoding` grew by one value per hop);
+  - `ForwardKeys` — `app-ctx-bin` (identity), `x-request-id`,
+    `traceparent`, `tracestate` and Istio's B3 headers — are forwarded;
+  - other keys depend on the mode: `ForwardLogOnly` (default) forwards them
+    and logs each key name once per process, never the value;
+    `ForwardAllowlist` drops them. Set `GGLIB_GRPC_METADATA_FORWARDING=allowlist`
+    to switch, after the log shows no dependency.
+- The server interceptor logs a malformed app context at Warn with its
+  length only; it used to log the raw header, tokens included, at Error.
+
+### Added
+
+- `ContextStreamServerInterceptor`: streaming calls get the app context
+  too.
+- `ForwardKeys`, `ForwardMode`, `ForwardLogOnly`, `ForwardAllowlist`,
+  `ForwardModeEnv`, `DefaultForwardMode`.
+
 ### Fixed
 
 - `recovery` returns `codes.Internal` with the message "internal error"
@@ -35,6 +60,8 @@ the last commit before the first release work.
 - `recovery.SentryPanicHandler` and the `PanicHandler` parameter (no users;
   removes sentry-go from the module graph).
 - `interceptor/grpc/errors` (legacy error type; no producers).
+- `context.NewContextWithGRPCMeta` (no users; it also dropped the context's
+  values).
 
 ### Changed
 

@@ -51,6 +51,8 @@ the last commit before the first release work.
 ### Added
 
 - `DefaultServerPort`.
+- `WithClientMetadataForwarding`, and the request-context interceptor in
+  the server stream chain (G3; see the interceptor changelog).
 
 ### Removed
 

@@ -1,88 +1,183 @@
 // Package context propagates the request context (mctx.AppContext) between
 // services through gRPC metadata.
+//
+// Services in the cluster trust each other: the caller's identity
+// (app-ctx-bin) travels with every call. Other incoming metadata — tokens,
+// cookies, routing markers — stays at the hop where it arrived. See
+// ForwardKeys and ForwardMode.
 package context
 
 import (
 	"context"
+	"os"
+	"slices"
+	"strings"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/ggsrc/gglib/interceptor/grpc/metautils"
 	pkgmetadata "github.com/ggsrc/gglib/interceptor/metadata"
 	"github.com/ggsrc/gglib/mctx"
 	"github.com/ggsrc/gglib/zerolog/log"
 )
 
+// ForwardKeys are the incoming metadata keys a client call forwards by
+// default: the caller's identity, the request id that ties log lines
+// together, and trace context for services without OpenTelemetry (W3C and
+// Istio's B3).
+var ForwardKeys = []string{
+	pkgmetadata.CTX_KEY_APP_CTX,
+	"x-request-id",
+	"traceparent",
+	"tracestate",
+	"x-b3-traceid",
+	"x-b3-spanid",
+	"x-b3-parentspanid",
+	"x-b3-sampled",
+	"x-b3-flags",
+	"b3",
+}
+
+// ForwardMode selects what ContextUnaryClientInterceptor does with incoming
+// metadata keys that are not in ForwardKeys.
+type ForwardMode int
+
+const (
+	// ForwardLogOnly forwards them, as before, and logs each key name once
+	// per process (never the value), so that a rollout can confirm nothing
+	// depends on them before switching to ForwardAllowlist.
+	ForwardLogOnly ForwardMode = iota
+	// ForwardAllowlist drops them.
+	ForwardAllowlist
+)
+
+// ForwardModeEnv names the environment variable that sets the default mode:
+// "allowlist" selects ForwardAllowlist; anything else, ForwardLogOnly.
+const ForwardModeEnv = "GGLIB_GRPC_METADATA_FORWARDING"
+
+// DefaultForwardMode returns the mode set by ForwardModeEnv.
+func DefaultForwardMode() ForwardMode {
+	if strings.EqualFold(strings.TrimSpace(os.Getenv(ForwardModeEnv)), "allowlist") {
+		return ForwardAllowlist
+	}
+	return ForwardLogOnly
+}
+
 // ContextUnaryServerInterceptor restores the AppContext from the incoming
 // "app-ctx-bin" metadata, binds a logger with request_id and user_id to the
 // context, and stores the "metadata" metadata value under
-// metadata.ContextKeyMetadata.
+// metadata.ContextKeyMetadata. A malformed app context is logged (its length,
+// never its content) and the call proceeds without one.
 func ContextUnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		// set request source
-		md := metautils.ExtractIncoming(ctx)
-		appCtxStr := md.Get(pkgmetadata.CTX_KEY_APP_CTX)
-		if appCtxStr != "" {
-			appCtx, err := mctx.StringToAppCtx(appCtxStr)
-			if err == nil {
-				ctx = mctx.ContextWithAppCtx(ctx, appCtx)
-
-				// Bind ctx to the logger so subsequent events carry it. Without
-				// this, `log.Ctx(ctx).Info().Msg(...)` emits events whose
-				// e.GetCtx() is nil — which means zerolog hooks that need to
-				// read the OTel SpanContext from ctx (for correlating logs to
-				// traces) cannot fire. With .Ctx(ctx), any downstream event
-				// built from this logger has the ctx available to hooks.
-				logger := log.Ctx(ctx).With().
-					Str("request_id", appCtx.CommonParams.RequestID).
-					Str("user_id", appCtx.User.UserID).
-					Ctx(ctx)
-				ctx = logger.Logger().WithContext(ctx)
-			} else {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to convert app ctx")
-			}
-		}
-
-		metadata := md.Get(pkgmetadata.CTX_KEY_METADATA)
-		ctx = context.WithValue(ctx, pkgmetadata.ContextKeyMetadata, metadata)
-
-		ret, err := handler(ctx, req)
-		return ret, err
+	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		return handler(withAppContext(ctx), req)
 	}
 }
 
-// ContextUnaryClientInterceptor forwards all incoming metadata to the
-// outgoing call. Outgoing metadata set by the caller comes first.
-func ContextUnaryClientInterceptor() grpc.UnaryClientInterceptor {
-	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		md, ok := metadata.FromIncomingContext(ctx)
-		if ok {
-			md = md.Copy()
+// ContextStreamServerInterceptor does for streaming calls what
+// ContextUnaryServerInterceptor does for unary ones.
+func ContextStreamServerInterceptor() grpc.StreamServerInterceptor {
+	return func(srv any, ss grpc.ServerStream, _ *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		return handler(srv, &serverStream{ServerStream: ss, ctx: withAppContext(ss.Context())})
+	}
+}
+
+type serverStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s *serverStream) Context() context.Context { return s.ctx }
+
+func withAppContext(ctx context.Context) context.Context {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if raw := first(md, pkgmetadata.CTX_KEY_APP_CTX); raw != "" {
+		appCtx, err := mctx.StringToAppCtx(raw)
+		if err != nil {
+			log.Ctx(ctx).Warn().Int("app_ctx_bytes", len(raw)).Msg("ignoring malformed app context")
 		} else {
-			md = metadata.MD{}
+			ctx = mctx.ContextWithAppCtx(ctx, appCtx)
+			// Bind ctx so that hooks reading the span from the event work.
+			logger := log.Ctx(ctx).With().
+				Str("request_id", appCtx.CommonParams.RequestID).
+				Str("user_id", appCtx.User.UserID).
+				Ctx(ctx).
+				Logger()
+			ctx = logger.WithContext(ctx)
 		}
-		outgoingmd, ok := metadata.FromOutgoingContext(ctx)
-		if ok {
-			// explicitly declared outgoing md take precedence over transitive incoming md
-			md = metadata.Join(outgoingmd, md)
-		}
-		ctx = metadata.NewOutgoingContext(ctx, md)
-		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+	return context.WithValue(ctx, pkgmetadata.ContextKeyMetadata, first(md, pkgmetadata.CTX_KEY_METADATA))
+}
+
+func first(md metadata.MD, key string) string {
+	if v := md.Get(key); len(v) > 0 {
+		return v[0]
+	}
+	return ""
+}
+
+// ContextUnaryClientInterceptor forwards incoming metadata of the current
+// server call to the outgoing call. A key the caller set explicitly on the
+// outgoing context replaces the incoming value instead of being added to
+// it. Which other keys are forwarded depends on mode (default:
+// DefaultForwardMode).
+func ContextUnaryClientInterceptor(mode ...ForwardMode) grpc.UnaryClientInterceptor {
+	m := DefaultForwardMode()
+	if len(mode) > 0 {
+		m = mode[0]
+	}
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		return invoker(forwardContext(ctx, method, m), method, req, reply, cc, opts...)
 	}
 }
 
-// NewContextWithGRPCMeta returns a new background context that carries the
-// incoming and outgoing gRPC metadata of ctx but not its deadline or values.
-func NewContextWithGRPCMeta(ctx context.Context) context.Context {
-	newCtx := context.Background()
-	md, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		newCtx = metadata.NewIncomingContext(newCtx, md)
+func forwardContext(ctx context.Context, method string, mode ForwardMode) context.Context {
+	incoming, ok := metadata.FromIncomingContext(ctx)
+	if !ok || len(incoming) == 0 {
+		return ctx
 	}
-	md, ok = metadata.FromOutgoingContext(ctx)
-	if ok {
-		newCtx = metadata.NewOutgoingContext(newCtx, md)
+	outgoing, _ := metadata.FromOutgoingContext(ctx)
+	md := outgoing.Copy()
+	if md == nil {
+		md = metadata.MD{}
 	}
-	return newCtx
+	for key, values := range incoming {
+		if _, set := md[key]; set || isTransportKey(key) {
+			continue
+		}
+		if !slices.Contains(ForwardKeys, key) {
+			if mode == ForwardAllowlist {
+				continue
+			}
+			logWouldDrop(ctx, key, method)
+		}
+		md[key] = append([]string(nil), values...)
+	}
+	return metadata.NewOutgoingContext(ctx, md)
+}
+
+// isTransportKey reports keys that belong to the HTTP/2 transport of one hop
+// and are never forwarded in any mode.
+func isTransportKey(key string) bool {
+	switch {
+	case strings.HasPrefix(key, ":"), strings.HasPrefix(key, "grpc-"):
+		return true
+	case key == "content-type", key == "user-agent", key == "te", key == "host":
+		return true
+	}
+	return false
+}
+
+var loggedKeys sync.Map
+
+func logWouldDrop(ctx context.Context, key, method string) {
+	if _, seen := loggedKeys.LoadOrStore(key, struct{}{}); seen {
+		return
+	}
+	log.Ctx(ctx).Info().
+		Str("metadata_key", key).
+		Str("grpc_method", method).
+		Str("setting", ForwardModeEnv+"=allowlist").
+		Msg("forwarded a metadata key that the allowlist mode would drop")
 }

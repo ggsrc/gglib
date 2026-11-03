@@ -64,7 +64,7 @@ func NewServerWithDefaultEnvPrefix() *Server {
 //
 //	unary:  metrics → recovery → request context → error log → call log
 //	        [→ body capture when Debug] → WithServerUnaryInterceptors
-//	stream: metrics → recovery → error log
+//	stream: metrics → recovery → request context → error log
 //
 // Metrics are outermost so that a recovered panic is counted as Internal.
 // Interceptors passed through WithServerGRPCServerOptions (for example
@@ -98,6 +98,7 @@ func newServer(conf *ServerConfig) *Server {
 	stream := []grpc.StreamServerInterceptor{
 		grpc_prometheus.StreamServerInterceptor,
 		recoveryinterceptor.StreamServerInterceptor(),
+		contextinterceptor.ContextStreamServerInterceptor(),
 		errloginterceptor.StreamServerInterceptor(),
 	}
 

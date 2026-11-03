@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"google.golang.org/grpc"
+
+	contextinterceptor "github.com/ggsrc/gglib/interceptor/grpc/context"
 )
 
 type (
@@ -22,6 +24,13 @@ func WithClientVerbose(verbose bool) ClientOption {
 // ones.
 func WithClientUnaryInterceptors(ii ...grpc.UnaryClientInterceptor) ClientOption {
 	return func(c *ClientConfig) { c.unaryInterceptors = append(c.unaryInterceptors, ii...) }
+}
+
+// WithClientMetadataForwarding sets which incoming metadata unary calls
+// forward (see the interceptor/grpc/context package). Without it, the
+// GGLIB_GRPC_METADATA_FORWARDING environment variable decides.
+func WithClientMetadataForwarding(mode contextinterceptor.ForwardMode) ClientOption {
+	return func(c *ClientConfig) { c.forwardMode = &mode }
 }
 
 // WithServerVerbose logs the start and end of every call.
