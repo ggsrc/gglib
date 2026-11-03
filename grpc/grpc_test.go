@@ -22,7 +22,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	contextinterceptor "github.com/ggsrc/gglib/interceptor/grpc/context"
 )
 
 // healthServer behaves according to the requested service name.
@@ -307,4 +310,43 @@ func TestConstructorsAndLifecycle(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("Start did not return after Shutdown")
 	}
+}
+
+// A server that echoes the metadata it received.
+type mdServer struct {
+	healthpb.UnimplementedHealthServer
+	got chan metadata.MD
+}
+
+func (m *mdServer) Check(ctx context.Context, _ *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	m.got <- md
+	return &healthpb.HealthCheckResponse{}, nil
+}
+
+func TestClientForwardingMode(t *testing.T) {
+	srv := NewServerWithOptions()
+	ms := &mdServer{got: make(chan metadata.MD, 1)}
+	healthpb.RegisterHealthServer(srv.Server(), ms)
+	var lc net.ListenConfig
+	lis, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	go func() { _ = srv.Serve(lis) }()
+	t.Cleanup(func() { _ = srv.Shutdown(context.Background()) })
+
+	conn, err := NewClientWithOptions(WithClientMetadataForwarding(contextinterceptor.ForwardAllowlist)).
+		Dial(t.Context(), lis.Addr().String())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+
+	// As if inside a server handler that received these headers.
+	ctx := metadata.NewIncomingContext(t.Context(), metadata.Pairs(
+		"app-ctx-bin", `{"user":{"user_id":"7"}}`,
+		"authorization", "Bearer END-USER",
+	))
+	_, err = healthpb.NewHealthClient(conn).Check(ctx, &healthpb.HealthCheckRequest{})
+	require.NoError(t, err)
+	got := <-ms.got
+	assert.Equal(t, []string{`{"user":{"user_id":"7"}}`}, got.Get("app-ctx-bin"))
+	assert.Empty(t, got.Get("authorization"))
 }

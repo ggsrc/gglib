@@ -24,6 +24,7 @@ type ClientConfig struct {
 	Verbose bool `default:"false"`
 
 	unaryInterceptors []grpc.UnaryClientInterceptor
+	forwardMode       *contextinterceptor.ForwardMode
 }
 
 // Client creates gRPC client connections with the standard interceptors.
@@ -54,6 +55,13 @@ func NewClientWithDefaultEnvPrefix() *Client {
 	return NewClient("grpc")
 }
 
+func (c *Client) contextInterceptor() grpc.UnaryClientInterceptor {
+	if c.conf.forwardMode != nil {
+		return contextinterceptor.ContextUnaryClientInterceptor(*c.conf.forwardMode)
+	}
+	return contextinterceptor.ContextUnaryClientInterceptor()
+}
+
 // Dial creates a client connection to addr. The connection uses gzip,
 // insecure transport credentials (in-cluster traffic) and the standard
 // interceptors, outermost first: recovery → error log → request context →
@@ -78,7 +86,7 @@ func (c *Client) Dial(
 	unary := []grpc.UnaryClientInterceptor{
 		recoveryinterceptor.UnaryClientInterceptor(),
 		errloginterceptor.UnaryClientInterceptor(),
-		contextinterceptor.ContextUnaryClientInterceptor(),
+		c.contextInterceptor(),
 		logging.UnaryClientInterceptor(
 			interceptorLogger(*logger),
 			logging.WithLogOnEvents(loggableEvents...),
