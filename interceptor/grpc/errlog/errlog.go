@@ -5,19 +5,20 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/jinzhu/copier"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/ggsrc/gglib/interceptor/grpc/errors"
 	"github.com/ggsrc/gglib/zerolog/log"
 )
 
-// UnaryServerInterceptor logs gRPC handler errors at an appropriate level
-// based on the status code: client errors (NotFound, AlreadyExists, …) at
-// Warn, server errors (Internal, Unknown, …) at Error.
+// UnaryServerInterceptor logs gRPC handler errors at a level based on the
+// status code: client errors (NotFound, AlreadyExists, …) at Warn, server
+// errors (Internal, Unknown, …) at Error.
 func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		resp, err := handler(ctx, req)
@@ -28,7 +29,20 @@ func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
-// UnaryClientInterceptor logs gRPC client call errors at an appropriate level.
+// StreamServerInterceptor logs errors returned by streaming handlers, like
+// UnaryServerInterceptor.
+func StreamServerInterceptor() grpc.StreamServerInterceptor {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		err := handler(srv, ss)
+		if err != nil {
+			logGRPCError(ss.Context(), err, info.FullMethod, "grpc server error")
+		}
+		return err
+	}
+}
+
+// UnaryClientInterceptor logs gRPC client call errors at a level based on the
+// status code.
 func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		err := invoker(ctx, method, req, reply, cc, opts...)
@@ -40,30 +54,53 @@ func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 }
 
 func logGRPCError(ctx context.Context, err error, method, msg string) {
-	grpcStatus, ok := status.FromError(err)
+	st, ok := status.FromError(err)
 	if !ok {
-		log.Ctx(ctx).Error().Err(err).Msg(msg)
-		return
+		// context.Canceled and DeadlineExceeded map to their codes, as
+		// grpc-go does on the wire; other plain errors map to Unknown.
+		st = status.FromContextError(err)
 	}
-
-	var subErrs []*errors.ErrorInfo
-	for _, detail := range grpcStatus.Details() {
-		if detail == nil {
-			continue
-		}
-		var subErr errors.ErrorInfo
-		if copyErr := copier.Copy(&subErr, detail); copyErr == nil {
-			subErrs = append(subErrs, &subErr)
-		}
-	}
-
-	subErrStr, _ := json.Marshal(subErrs) //nolint:errchkjson // ErrorInfo has only string fields; Marshal cannot fail
+	details := detailsJSON(st)
 	log.Ctx(ctx).
-		WithLevel(levelForCode(grpcStatus.Code())).
+		WithLevel(levelForCode(st.Code())).
 		Str("grpc_method", method).
-		Str("sub_errors", string(subErrStr)).
+		Str("grpc_code", st.Code().String()).
+		Func(func(e *zerolog.Event) {
+			if details != "" {
+				e.Str("sub_errors", details)
+			}
+		}).
 		Err(err).
 		Msg(msg)
+}
+
+// detailsJSON encodes the status details as a JSON array of protojson
+// objects with their "@type", or returns "" when there are none.
+func detailsJSON(st *status.Status) string {
+	raw := make([]json.RawMessage, 0, len(st.Details()))
+	for _, d := range st.Details() {
+		msg, ok := d.(proto.Message)
+		if !ok {
+			continue
+		}
+		a, err := anypb.New(msg)
+		if err != nil {
+			continue
+		}
+		b, err := protojson.Marshal(a)
+		if err != nil {
+			continue
+		}
+		raw = append(raw, b)
+	}
+	if len(raw) == 0 {
+		return ""
+	}
+	out, err := json.Marshal(raw)
+	if err != nil {
+		return ""
+	}
+	return string(out)
 }
 
 // levelForCode maps gRPC status codes to zerolog levels.

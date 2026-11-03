@@ -23,7 +23,6 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
-	github.com/getsentry/sentry-go v0.50.0 // indirect
 	github.com/ggsrc/gglib/env v0.0.0-20261013145132-b474e434e730 // indirect
 	github.com/ggsrc/gglib/interceptor v0.0.0-20261013145132-b474e434e730 // indirect
 	github.com/ggsrc/gglib/mctx v0.0.0-20261013145132-b474e434e730 // indirect
@@ -33,7 +32,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.33.0 // indirect
-	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect

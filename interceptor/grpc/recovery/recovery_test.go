@@ -19,372 +19,106 @@ type logEntry struct {
 	Level      string `json:"level"`
 	Error      string `json:"error"`
 	Message    string `json:"message"`
+	Method     string `json:"grpc_method"`
 	PanicStack string `json:"panic.stack"`
 }
 
 func ctxWithLogger(buf *bytes.Buffer) context.Context {
-	logger := zerolog.New(buf).Level(zerolog.TraceLevel)
-	return logger.WithContext(context.Background())
+	return zerolog.New(buf).WithContext(context.Background())
 }
 
-func serverInfo(method string) *grpc.UnaryServerInfo {
-	return &grpc.UnaryServerInfo{FullMethod: method}
+func readEntry(t *testing.T, buf *bytes.Buffer) logEntry {
+	t.Helper()
+	var e logEntry
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &e), buf.String())
+	return e
 }
 
-// ---------------------------------------------------------------------------
-// UnaryServerInterceptor — panic recovery
-// ---------------------------------------------------------------------------
-
-func TestServer_PanicRecovery_ReturnsError(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	interceptor := UnaryServerInterceptor(nil)
-	resp, err := interceptor(
-		ctx,
-		"req",
-		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req any) (any, error) {
-			panic("something broke")
-		},
-	)
-
-	assert.Nil(t, resp)
-	require.Error(t, err)
-	assert.Equal(t, "server Internal Error", err.Error())
+type fakeStream struct {
+	grpc.ServerStream
+	ctx context.Context
 }
 
-func TestServer_PanicRecovery_LogsPanic(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
+func (s fakeStream) Context() context.Context { return s.ctx }
 
-	interceptor := UnaryServerInterceptor(nil)
-	_, _ = interceptor(
-		ctx,
-		"req",
-		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req any) (any, error) {
-			panic("kaboom")
-		},
-	)
+func TestUnaryServerPanic(t *testing.T) {
+	for name, value := range map[string]any{
+		"string": "something broke",
+		"error":  errors.New("boom"),
+		"int":    42,
+	} {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			resp, err := UnaryServerInterceptor()(ctxWithLogger(&buf), "req",
+				&grpc.UnaryServerInfo{FullMethod: "/svc/Crash"},
+				func(context.Context, any) (any, error) { panic(value) })
 
-	var entry logEntry
-	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
-	assert.Equal(t, "error", entry.Level)
-	assert.Contains(t, entry.Message, "grpc server panic")
-	assert.Contains(t, entry.Message, "test.Svc/Crash")
-	assert.Contains(t, entry.Error, "[panic] kaboom")
-	assert.NotEmpty(t, entry.PanicStack, "should contain stack trace")
-}
+			assert.Nil(t, resp)
+			// Used to be a plain error, which went on the wire as Unknown.
+			assert.Equal(t, codes.Internal, status.Code(err))
+			assert.Equal(t, "internal error", status.Convert(err).Message(), "the panic value is not sent")
 
-func TestServer_PanicRecovery_CallsPanicHandler(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	var handlerCalled bool
-	var capturedMethod string
-	var capturedR any
-	handler := func(_ context.Context, method string, r any, _ []byte) {
-		handlerCalled = true
-		capturedMethod = method
-		capturedR = r
+			e := readEntry(t, &buf)
+			assert.Equal(t, "error", e.Level)
+			assert.Equal(t, "grpc server panic", e.Message)
+			assert.Equal(t, "/svc/Crash", e.Method)
+			assert.Contains(t, e.Error, "panic:")
+			assert.Contains(t, e.PanicStack, "recovery_test.go")
+		})
 	}
-
-	interceptor := UnaryServerInterceptor(handler)
-	_, _ = interceptor(
-		ctx,
-		"req",
-		serverInfo("/test.Svc/Explode"),
-		func(ctx context.Context, req any) (any, error) {
-			panic("boom")
-		},
-	)
-
-	assert.True(t, handlerCalled)
-	assert.Equal(t, "/test.Svc/Explode", capturedMethod)
-	assert.Equal(t, "boom", capturedR)
 }
 
-func TestServer_PanicRecovery_NilPanicHandler(t *testing.T) {
+func TestUnaryServerPassesThrough(t *testing.T) {
 	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	interceptor := UnaryServerInterceptor(nil)
-	_, err := interceptor(
-		ctx,
-		"req",
-		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req any) (any, error) {
-			panic("safe with nil handler")
-		},
-	)
-
-	require.Error(t, err)
-	assert.Equal(t, "server Internal Error", err.Error())
-}
-
-func TestServer_PanicRecovery_NonStringPanic(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	interceptor := UnaryServerInterceptor(nil)
-	_, err := interceptor(
-		ctx,
-		"req",
-		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req any) (any, error) {
-			panic(42)
-		},
-	)
-
-	require.Error(t, err)
-	assert.Equal(t, "server Internal Error", err.Error())
-
-	var entry logEntry
-	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
-	assert.Contains(t, entry.Error, "[panic] 42")
-}
-
-func TestServer_PanicRecovery_ErrorPanic(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	interceptor := UnaryServerInterceptor(nil)
-	_, err := interceptor(
-		ctx,
-		"req",
-		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req any) (any, error) {
-			panic(errors.New("wrapped error"))
-		},
-	)
-
-	require.Error(t, err)
-
-	var entry logEntry
-	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
-	assert.Contains(t, entry.Error, "wrapped error")
-}
-
-// ---------------------------------------------------------------------------
-// UnaryServerInterceptor — normal flow (no panic)
-// ---------------------------------------------------------------------------
-
-func TestServer_NoPanic_PassesThroughSuccess(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	interceptor := UnaryServerInterceptor(nil)
-	resp, err := interceptor(
-		ctx,
-		"req",
-		serverInfo("/test.Svc/OK"),
-		func(ctx context.Context, req any) (any, error) {
-			return "result", nil
-		},
-	)
-
-	require.NoError(t, err)
-	assert.Equal(t, "result", resp)
-	assert.Empty(t, buf.String(), "no log on normal flow")
-}
-
-func TestServer_NoPanic_PassesThroughError(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	handlerErr := status.Error(codes.NotFound, "not found")
-	interceptor := UnaryServerInterceptor(nil)
-	resp, err := interceptor(
-		ctx,
-		"req",
-		serverInfo("/test.Svc/NotFound"),
-		func(ctx context.Context, req any) (any, error) {
-			return nil, handlerErr
-		},
-	)
-
-	assert.Nil(t, resp)
-	assert.Equal(t, handlerErr, err, "error should pass through unmodified")
-	assert.Empty(t, buf.String(), "recovery should not log returned errors")
-}
-
-func TestServer_NoPanic_PassesThroughInternalError(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	handlerErr := status.Error(codes.Internal, "db error")
-	interceptor := UnaryServerInterceptor(nil)
-	_, err := interceptor(
-		ctx,
-		"req",
-		serverInfo("/test.Svc/Fail"),
-		func(ctx context.Context, req any) (any, error) {
-			return nil, handlerErr
-		},
-	)
-
-	assert.Equal(t, handlerErr, err)
-	assert.Empty(t, buf.String(), "recovery should not log returned errors")
-}
-
-func TestServer_NoPanic_PassesThroughRequest(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	var received any
-	interceptor := UnaryServerInterceptor(nil)
-	_, _ = interceptor(
-		ctx,
-		"my-data",
-		serverInfo("/test.Svc/Echo"),
-		func(ctx context.Context, req any) (any, error) {
-			received = req
-			return req, nil
-		},
-	)
-
-	assert.Equal(t, "my-data", received)
-}
-
-// ---------------------------------------------------------------------------
-// UnaryClientInterceptor — panic recovery
-// ---------------------------------------------------------------------------
-
-func noopInvoker(
-	_ context.Context,
-	_ string,
-	_, _ any,
-	_ *grpc.ClientConn,
-	_ ...grpc.CallOption,
-) error {
-	return nil
-}
-
-func TestClient_PanicRecovery_ReturnsError(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	interceptor := UnaryClientInterceptor(nil)
-	err := interceptor(
-		ctx,
-		"/test.Svc/Call",
-		nil,
-		nil,
-		nil,
-		func(_ context.Context, _ string, _, _ any, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
-			panic("client panic")
-		},
-	)
-
-	require.Error(t, err)
-	assert.Equal(t, "server Internal Error", err.Error())
-}
-
-func TestClient_PanicRecovery_LogsPanic(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	interceptor := UnaryClientInterceptor(nil)
-	_ = interceptor(
-		ctx,
-		"/test.Svc/Call",
-		nil,
-		nil,
-		nil,
-		func(_ context.Context, _ string, _, _ any, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
-			panic("client boom")
-		},
-	)
-
-	var entry logEntry
-	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
-	assert.Equal(t, "error", entry.Level)
-	assert.Contains(t, entry.Message, "grpc client panic")
-	assert.Contains(t, entry.Message, "test.Svc/Call")
-	assert.Contains(t, entry.Error, "[panic] client boom")
-	assert.NotEmpty(t, entry.PanicStack)
-}
-
-func TestClient_PanicRecovery_CallsPanicHandler(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	var handlerCalled bool
-	var capturedMethod string
-	handler := func(_ context.Context, method string, r any, _ []byte) {
-		handlerCalled = true
-		capturedMethod = method
-	}
-
-	interceptor := UnaryClientInterceptor(handler)
-	_ = interceptor(
-		ctx,
-		"/test.Svc/Explode",
-		nil,
-		nil,
-		nil,
-		func(_ context.Context, _ string, _, _ any, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
-			panic("client explode")
-		},
-	)
-
-	assert.True(t, handlerCalled)
-	assert.Equal(t, "/test.Svc/Explode", capturedMethod)
-}
-
-func TestClient_PanicRecovery_NilPanicHandler(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	interceptor := UnaryClientInterceptor(nil)
-	err := interceptor(
-		ctx,
-		"/test.Svc/Crash",
-		nil,
-		nil,
-		nil,
-		func(_ context.Context, _ string, _, _ any, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
-			panic("nil handler safe")
-		},
-	)
-
-	require.Error(t, err)
-	assert.Equal(t, "server Internal Error", err.Error())
-}
-
-// ---------------------------------------------------------------------------
-// UnaryClientInterceptor — normal flow (no panic)
-// ---------------------------------------------------------------------------
-
-func TestClient_NoPanic_PassesThroughSuccess(t *testing.T) {
-	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
-
-	interceptor := UnaryClientInterceptor(nil)
-	err := interceptor(ctx, "/test.Svc/Call", nil, nil, nil, noopInvoker)
-
-	require.NoError(t, err)
+	want := status.Error(codes.NotFound, "nope")
+	resp, err := UnaryServerInterceptor()(ctxWithLogger(&buf), "in",
+		&grpc.UnaryServerInfo{FullMethod: "/svc/M"},
+		func(_ context.Context, req any) (any, error) { return req.(string) + "-out", want })
+	assert.Equal(t, "in-out", resp)
+	assert.Equal(t, want, err)
 	assert.Empty(t, buf.String())
 }
 
-func TestClient_NoPanic_PassesThroughError(t *testing.T) {
+// A panic in a streaming handler used to crash the process.
+func TestStreamServerPanic(t *testing.T) {
 	var buf bytes.Buffer
-	ctx := ctxWithLogger(&buf)
+	err := StreamServerInterceptor()(nil, fakeStream{ctx: ctxWithLogger(&buf)},
+		&grpc.StreamServerInfo{FullMethod: "/svc/Watch"},
+		func(any, grpc.ServerStream) error { panic("stream boom") })
 
-	expected := status.Error(codes.NotFound, "gone")
-	interceptor := UnaryClientInterceptor(nil)
-	err := interceptor(
-		ctx,
-		"/test.Svc/Call",
-		nil,
-		nil,
-		nil,
-		func(_ context.Context, _ string, _, _ any, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
-			return expected
-		},
-	)
+	assert.Equal(t, codes.Internal, status.Code(err))
+	e := readEntry(t, &buf)
+	assert.Equal(t, "/svc/Watch", e.Method)
+	assert.Contains(t, e.Error, "stream boom")
+}
 
-	assert.Equal(t, expected, err, "error should pass through unmodified")
-	assert.Empty(t, buf.String(), "recovery should not log returned errors")
+func TestStreamServerPassesThrough(t *testing.T) {
+	var buf bytes.Buffer
+	want := errors.New("done")
+	err := StreamServerInterceptor()(nil, fakeStream{ctx: ctxWithLogger(&buf)},
+		&grpc.StreamServerInfo{FullMethod: "/svc/Watch"},
+		func(any, grpc.ServerStream) error { return want })
+	assert.Equal(t, want, err)
+	assert.Empty(t, buf.String())
+}
+
+func TestUnaryClientPanic(t *testing.T) {
+	var buf bytes.Buffer
+	err := UnaryClientInterceptor()(ctxWithLogger(&buf), "/svc/Call", "req", nil, nil,
+		func(context.Context, string, any, any, *grpc.ClientConn, ...grpc.CallOption) error {
+			panic("client boom")
+		})
+	assert.Equal(t, codes.Internal, status.Code(err))
+	e := readEntry(t, &buf)
+	assert.Equal(t, "grpc client panic", e.Message)
+	assert.Equal(t, "/svc/Call", e.Method)
+}
+
+func TestUnaryClientPassesThrough(t *testing.T) {
+	var buf bytes.Buffer
+	want := status.Error(codes.Unavailable, "down")
+	err := UnaryClientInterceptor()(ctxWithLogger(&buf), "/svc/Call", "req", nil, nil,
+		func(context.Context, string, any, any, *grpc.ClientConn, ...grpc.CallOption) error { return want })
+	assert.Equal(t, want, err)
+	assert.Empty(t, buf.String())
 }

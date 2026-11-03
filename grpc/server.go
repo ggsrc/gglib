@@ -13,12 +13,14 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 
-	"github.com/ggsrc/gglib/env"
 	contextinterceptor "github.com/ggsrc/gglib/interceptor/grpc/context"
 	errloginterceptor "github.com/ggsrc/gglib/interceptor/grpc/errlog"
 	loginterceptor "github.com/ggsrc/gglib/interceptor/grpc/log"
 	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 )
+
+// DefaultServerPort is the port Start listens on unless configured otherwise.
+const DefaultServerPort = 9090
 
 // Server is a gRPC server with the standard interceptors.
 type Server struct {
@@ -26,15 +28,14 @@ type Server struct {
 	server *grpc.Server
 }
 
-// ServerConfig configures a Server. Port defaults to 9090. Debug records
-// request and response bodies in spans; Verbose logs the start and end of
-// every call.
+// ServerConfig configures a Server. Port defaults to DefaultServerPort.
+// Debug records request and response bodies in spans (they can contain
+// secrets); Verbose logs the start and end of every call.
 type ServerConfig struct {
 	Debug   bool `default:"false"`
 	Port    int  `default:"9090"`
 	Verbose bool `default:"false"`
 
-	panicHandler      recoveryinterceptor.PanicHandler
 	unaryInterceptors []grpc.UnaryServerInterceptor
 	gRPCServerOptions []grpc.ServerOption
 }
@@ -45,9 +46,8 @@ func NewServerWithOptions(opts ...ServerOption) *Server {
 	for _, opt := range opts {
 		opt(conf)
 	}
-	// default port is 9090
 	if conf.Port == 0 {
-		conf.Port = 9090
+		conf.Port = DefaultServerPort
 	}
 	return newServer(conf)
 }
@@ -55,54 +55,64 @@ func NewServerWithOptions(opts ...ServerOption) *Server {
 // NewServerWithDefaultEnvPrefix returns a Server configured from GRPC_*
 // environment variables. It panics if they cannot be parsed.
 func NewServerWithDefaultEnvPrefix() *Server {
-	var grpcConfig ServerConfig
-	envconfig.MustProcess("grpc", &grpcConfig)
-	return newServer(&grpcConfig)
+	var conf ServerConfig
+	envconfig.MustProcess("grpc", &conf)
+	return newServer(&conf)
 }
 
+// newServer builds the server. The standard chain, outermost first:
+//
+//	unary:  metrics → recovery → request context → error log → call log
+//	        [→ body capture when Debug] → WithServerUnaryInterceptors
+//	stream: metrics → recovery → error log
+//
+// Metrics are outermost so that a recovered panic is counted as Internal.
+// Interceptors passed through WithServerGRPCServerOptions (for example
+// grpc.ChainStreamInterceptor) are appended after the standard ones.
 func newServer(conf *ServerConfig) *Server {
-	s := &Server{
-		conf: conf,
-	}
-
 	logger := zerolog.DefaultContextLogger
 	if logger == nil {
 		logger = &log.Logger
 	}
 
-	loggableEvents := []logging.LoggableEvent{}
+	var loggableEvents []logging.LoggableEvent
 	if conf.Verbose {
 		loggableEvents = append(loggableEvents, logging.StartCall, logging.FinishCall)
 	}
 
-	interceptors := []grpc.UnaryServerInterceptor{
+	unary := []grpc.UnaryServerInterceptor{
+		grpc_prometheus.UnaryServerInterceptor,
+		recoveryinterceptor.UnaryServerInterceptor(),
 		contextinterceptor.ContextUnaryServerInterceptor(),
-		recoveryinterceptor.UnaryServerInterceptor(conf.panicHandler),
 		errloginterceptor.UnaryServerInterceptor(),
 		logging.UnaryServerInterceptor(
-			InterceptorLogger(*logger),
+			interceptorLogger(*logger),
 			logging.WithLogOnEvents(loggableEvents...),
 		),
-		grpc_prometheus.UnaryServerInterceptor,
+	}
+	if conf.Debug {
+		unary = append(unary, loginterceptor.LogUnaryServerInterceptor())
+	}
+	unary = append(unary, conf.unaryInterceptors...)
+
+	stream := []grpc.StreamServerInterceptor{
+		grpc_prometheus.StreamServerInterceptor,
+		recoveryinterceptor.StreamServerInterceptor(),
+		errloginterceptor.StreamServerInterceptor(),
 	}
 
-	if conf.Debug || !env.IsProduction() {
-		interceptors = append(interceptors, loginterceptor.LogUnaryServerInterceptor())
-	}
-
-	interceptors = append(interceptors, conf.unaryInterceptors...)
-
-	defaultOpts := []grpc.ServerOption{
-		grpc.UnaryInterceptor(chainUnaryServer(interceptors...)),
-		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+	opts := make([]grpc.ServerOption, 0, 3+len(conf.gRPCServerOptions))
+	opts = append(opts,
+		grpc.ChainUnaryInterceptor(unary...),
+		grpc.ChainStreamInterceptor(stream...),
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-	}
-	defaultOpts = append(defaultOpts, conf.gRPCServerOptions...)
-	s.server = grpc.NewServer(defaultOpts...)
+	)
+	opts = append(opts, conf.gRPCServerOptions...)
+
+	s := &Server{conf: conf, server: grpc.NewServer(opts...)}
 	grpc_prometheus.Register(s.server)
-	// Prometheus histograms are a great way to measure latency distributions of your RPCs. However,
-	// since it is bad practice to have metrics of high cardinality the latency monitoring metrics
-	// are disabled by default.
+	// Record latency histograms (grpc_server_handling_seconds); dashboards
+	// read them.
 	grpc_prometheus.EnableHandlingTimeHistogram()
 	return s
 }
@@ -145,42 +155,5 @@ func (s *Server) Shutdown(ctx context.Context) (err error) {
 		err = ctx.Err()
 	case <-ch:
 	}
-	return
-}
-
-// chainUnaryServer is adapted from
-// https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/chain.go.
-func chainUnaryServer(interceptors ...grpc.UnaryServerInterceptor) grpc.UnaryServerInterceptor {
-	n := len(interceptors)
-
-	if n > 1 {
-		lastI := n - 1
-		return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-			var (
-				chainHandler grpc.UnaryHandler
-				curI         int
-			)
-
-			chainHandler = func(currentCtx context.Context, currentReq any) (any, error) {
-				if curI == lastI {
-					return handler(currentCtx, currentReq)
-				}
-				curI++
-				resp, err := interceptors[curI](currentCtx, currentReq, info, chainHandler)
-				curI--
-				return resp, err
-			}
-
-			return interceptors[0](ctx, req, info, chainHandler)
-		}
-	}
-
-	if n == 1 {
-		return interceptors[0]
-	}
-
-	// n == 0; Dummy interceptor maintained for backward compatibility to avoid returning nil.
-	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		return handler(ctx, req)
-	}
+	return err
 }
