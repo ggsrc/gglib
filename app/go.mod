@@ -3,13 +3,13 @@ module github.com/ggsrc/gglib/app
 go 1.27.0
 
 require (
-	github.com/ggsrc/gglib/env v0.0.0-20261013145132-b474e434e730
-	github.com/ggsrc/gglib/grpc v0.0.0-20261013145132-b474e434e730
-	github.com/ggsrc/gglib/health v0.0.0-20261013145132-b474e434e730
-	github.com/ggsrc/gglib/metric v0.0.0-20261013145132-b474e434e730
-	github.com/ggsrc/gglib/otel v0.0.0-20261013145132-b474e434e730
-	github.com/ggsrc/gglib/resource v0.0.0-20261013145132-b474e434e730
-	github.com/ggsrc/gglib/zerolog v0.0.0-20261013145132-b474e434e730
+	github.com/ggsrc/gglib/env v0.1.0
+	github.com/ggsrc/gglib/grpc v0.1.0
+	github.com/ggsrc/gglib/health v0.1.0
+	github.com/ggsrc/gglib/metric v0.1.0
+	github.com/ggsrc/gglib/otel v0.1.0
+	github.com/ggsrc/gglib/resource v0.1.0
+	github.com/ggsrc/gglib/zerolog v0.1.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 	google.golang.org/grpc v1.85.0
@@ -23,8 +23,8 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
-	github.com/ggsrc/gglib/interceptor v0.0.0-20261013145132-b474e434e730 // indirect
-	github.com/ggsrc/gglib/mctx v0.0.0-20261013145132-b474e434e730 // indirect
+	github.com/ggsrc/gglib/interceptor v0.1.0 // indirect
+	github.com/ggsrc/gglib/mctx v0.1.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect

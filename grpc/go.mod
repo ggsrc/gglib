@@ -3,7 +3,7 @@ module github.com/ggsrc/gglib/grpc
 go 1.27.0
 
 require (
-	github.com/ggsrc/gglib/interceptor v0.0.0-20261013145132-b474e434e730
+	github.com/ggsrc/gglib/interceptor v0.1.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -23,8 +23,8 @@ require (
 	github.com/bytedance/sonic/loader v0.5.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
-	github.com/ggsrc/gglib/mctx v0.0.0-20261013145132-b474e434e730 // indirect
-	github.com/ggsrc/gglib/zerolog v0.0.0-20261013145132-b474e434e730 // indirect
+	github.com/ggsrc/gglib/mctx v0.1.0 // indirect
+	github.com/ggsrc/gglib/zerolog v0.1.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
