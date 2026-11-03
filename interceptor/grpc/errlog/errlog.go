@@ -1,3 +1,4 @@
+// Package errlog logs gRPC errors at a level that matches their status code.
 package errlog
 
 import (
@@ -18,7 +19,7 @@ import (
 // based on the status code: client errors (NotFound, AlreadyExists, …) at
 // Warn, server errors (Internal, Unknown, …) at Error.
 func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
 			logGRPCError(ctx, err, info.FullMethod, "grpc server error")
@@ -56,7 +57,7 @@ func logGRPCError(ctx context.Context, err error, method, msg string) {
 		}
 	}
 
-	subErrStr, _ := json.Marshal(subErrs)
+	subErrStr, _ := json.Marshal(subErrs) //nolint:errchkjson // ErrorInfo has only string fields; Marshal cannot fail
 	log.Ctx(ctx).
 		WithLevel(levelForCode(grpcStatus.Code())).
 		Str("grpc_method", method).

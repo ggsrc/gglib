@@ -20,11 +20,15 @@ import (
 	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 )
 
+// Server is a gRPC server with the standard interceptors.
 type Server struct {
 	conf   *ServerConfig
 	server *grpc.Server
 }
 
+// ServerConfig configures a Server. Port defaults to 9090. Debug records
+// request and response bodies in spans; Verbose logs the start and end of
+// every call.
 type ServerConfig struct {
 	Debug   bool `default:"false"`
 	Port    int  `default:"9090"`
@@ -35,6 +39,7 @@ type ServerConfig struct {
 	gRPCServerOptions []grpc.ServerOption
 }
 
+// NewServerWithOptions returns a Server configured by opts.
 func NewServerWithOptions(opts ...ServerOption) *Server {
 	conf := &ServerConfig{}
 	for _, opt := range opts {
@@ -47,6 +52,8 @@ func NewServerWithOptions(opts ...ServerOption) *Server {
 	return newServer(conf)
 }
 
+// NewServerWithDefaultEnvPrefix returns a Server configured from GRPC_*
+// environment variables. It panics if they cannot be parsed.
 func NewServerWithDefaultEnvPrefix() *Server {
 	var grpcConfig ServerConfig
 	envconfig.MustProcess("grpc", &grpcConfig)
@@ -65,8 +72,7 @@ func newServer(conf *ServerConfig) *Server {
 
 	loggableEvents := []logging.LoggableEvent{}
 	if conf.Verbose {
-		loggableEvents = append(loggableEvents, logging.StartCall)
-		loggableEvents = append(loggableEvents, logging.FinishCall)
+		loggableEvents = append(loggableEvents, logging.StartCall, logging.FinishCall)
 	}
 
 	interceptors := []grpc.UnaryServerInterceptor{
@@ -101,15 +107,16 @@ func newServer(conf *ServerConfig) *Server {
 	return s
 }
 
-// Server return the grpc server for registering service.
+// Server returns the underlying *grpc.Server, for registering services.
 func (s *Server) Server() *grpc.Server {
 	return s.server
 }
 
-// Start create a tcp listener and start goroutine for serving each incoming request.
-// Start will return a non-nil error unless Stop or GracefulStop is called.
+// Start listens on the configured TCP port and serves until the server is
+// stopped. It returns a non-nil error unless the server was stopped.
 func (s *Server) Start() error {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.conf.Port))
+	var lc net.ListenConfig
+	lis, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf(":%d", s.conf.Port))
 	if err != nil {
 		return err
 	}
@@ -141,19 +148,20 @@ func (s *Server) Shutdown(ctx context.Context) (err error) {
 	return
 }
 
-// From https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/chain.go
+// chainUnaryServer is adapted from
+// https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/chain.go.
 func chainUnaryServer(interceptors ...grpc.UnaryServerInterceptor) grpc.UnaryServerInterceptor {
 	n := len(interceptors)
 
 	if n > 1 {
 		lastI := n - 1
-		return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 			var (
 				chainHandler grpc.UnaryHandler
 				curI         int
 			)
 
-			chainHandler = func(currentCtx context.Context, currentReq interface{}) (interface{}, error) {
+			chainHandler = func(currentCtx context.Context, currentReq any) (any, error) {
 				if curI == lastI {
 					return handler(currentCtx, currentReq)
 				}
@@ -172,7 +180,7 @@ func chainUnaryServer(interceptors ...grpc.UnaryServerInterceptor) grpc.UnarySer
 	}
 
 	// n == 0; Dummy interceptor maintained for backward compatibility to avoid returning nil.
-	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		return handler(ctx, req)
 	}
 }

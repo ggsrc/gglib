@@ -13,6 +13,8 @@ import (
 
 const defaultTimeout = 5 * time.Second
 
+// TypeLoaderParam configures a Loader: the Postgres type names to load and
+// the timeout for loading them on one connection.
 type TypeLoaderParam struct {
 	Timeout time.Duration `default:"5s"`
 	Types   []string
@@ -20,6 +22,8 @@ type TypeLoaderParam struct {
 
 var defaultLoader *Loader
 
+// InitTypeLoader sets up the package-level Loader. A nil p reads
+// WPGX_TYPE_LOADER_* environment variables.
 func InitTypeLoader(p *TypeLoaderParam) {
 	if p == nil {
 		cfg := TypeLoaderParam{}
@@ -30,6 +34,8 @@ func InitTypeLoader(p *TypeLoaderParam) {
 	defaultLoader = NewLoader(p)
 }
 
+// LoadTypes registers the configured types on conn with the package-level
+// Loader. It always returns true, so it can be used as a BeforeAcquire hook.
 func LoadTypes(ctx context.Context, conn *pgx.Conn) bool {
 	if defaultLoader == nil {
 		// no type loader, skip
@@ -39,6 +45,7 @@ func LoadTypes(ctx context.Context, conn *pgx.Conn) bool {
 	return defaultLoader.LoadTypes(ctx, conn)
 }
 
+// Reset clears the package-level Loader.
 func Reset() {
 	if defaultLoader == nil {
 		// no type loader, skip
@@ -48,6 +55,7 @@ func Reset() {
 	defaultLoader.Reset()
 }
 
+// NewLoader returns a Loader for the de-duplicated type names in p.
 func NewLoader(p *TypeLoaderParam) *Loader {
 	l := Loader{
 		ptMap:   map[string]*pgtype.Type{},
@@ -67,12 +75,17 @@ func NewLoader(p *TypeLoaderParam) *Loader {
 	return &l
 }
 
+// Loader loads custom Postgres types once and registers them on every
+// connection.
 type Loader struct {
 	ptMap   map[string]*pgtype.Type
 	timeout time.Duration
 	ts      []string
 }
 
+// LoadTypes registers the configured types on conn, loading each one from the
+// database the first time. It always returns true, so it can be used as a
+// BeforeAcquire hook.
 func (l *Loader) LoadTypes(ctx context.Context, conn *pgx.Conn) bool {
 	ctx, cancel := context.WithTimeout(ctx, l.timeout)
 	defer cancel()
@@ -99,6 +112,7 @@ func (l *Loader) LoadTypes(ctx context.Context, conn *pgx.Conn) bool {
 	return true
 }
 
+// Reset forgets the configured and loaded types.
 func (l *Loader) Reset() {
 	l.ptMap = map[string]*pgtype.Type{}
 	l.ts = []string{}

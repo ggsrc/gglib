@@ -17,6 +17,8 @@ import (
 	recoveryinterceptor "github.com/ggsrc/gglib/interceptor/grpc/recovery"
 )
 
+// ClientConfig configures a Client. Verbose logs the start and end of every
+// call.
 type ClientConfig struct {
 	Verbose bool `default:"false"`
 
@@ -24,10 +26,12 @@ type ClientConfig struct {
 	unaryInterceptors []grpc.UnaryClientInterceptor
 }
 
+// Client creates gRPC client connections with the standard interceptors.
 type Client struct {
 	conf *ClientConfig
 }
 
+// NewClientWithOptions returns a Client configured by opts.
 func NewClientWithOptions(opts ...ClientOption) *Client {
 	conf := &ClientConfig{}
 	for _, opt := range opts {
@@ -38,6 +42,8 @@ func NewClientWithOptions(opts ...ClientOption) *Client {
 	}
 }
 
+// NewClient returns a Client configured from environment variables with the
+// given prefix. It panics if they cannot be parsed.
 func NewClient(envPrefix string) *Client {
 	conf := &ClientConfig{}
 	envconfig.MustProcess(envPrefix, conf)
@@ -46,10 +52,15 @@ func NewClient(envPrefix string) *Client {
 	}
 }
 
+// NewClientWithDefaultEnvPrefix returns a Client configured from GRPC_*
+// environment variables.
 func NewClientWithDefaultEnvPrefix() *Client {
 	return NewClient("grpc")
 }
 
+// Dial creates a client connection to addr. The connection uses gzip,
+// insecure transport credentials and the standard interceptors; opts are
+// applied after the defaults.
 func (c *Client) Dial(
 	ctx context.Context,
 	addr string,
@@ -62,8 +73,7 @@ func (c *Client) Dial(
 
 	loggableEvents := []logging.LoggableEvent{}
 	if c.conf.Verbose {
-		loggableEvents = append(loggableEvents, logging.StartCall)
-		loggableEvents = append(loggableEvents, logging.FinishCall)
+		loggableEvents = append(loggableEvents, logging.StartCall, logging.FinishCall)
 	}
 
 	interceptors := []grpc.UnaryClientInterceptor{
@@ -91,19 +101,20 @@ func (c *Client) Dial(
 	return grpc.NewClient(addr, opts...)
 }
 
-// From https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/chain.go
+// chainUnaryClient is adapted from
+// https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/chain.go.
 func chainUnaryClient(interceptors ...grpc.UnaryClientInterceptor) grpc.UnaryClientInterceptor {
 	n := len(interceptors)
 
 	if n > 1 {
 		lastI := n - 1
-		return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 			var (
 				chainHandler grpc.UnaryInvoker
 				curI         int
 			)
 
-			chainHandler = func(currentCtx context.Context, currentMethod string, currentReq, currentRepl interface{}, currentConn *grpc.ClientConn, currentOpts ...grpc.CallOption) error {
+			chainHandler = func(currentCtx context.Context, currentMethod string, currentReq, currentRepl any, currentConn *grpc.ClientConn, currentOpts ...grpc.CallOption) error {
 				if curI == lastI {
 					return invoker(
 						currentCtx,
@@ -135,7 +146,7 @@ func chainUnaryClient(interceptors ...grpc.UnaryClientInterceptor) grpc.UnaryCli
 	}
 
 	// n == 0; Dummy interceptor maintained for backward compatibility to avoid returning nil.
-	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
 }

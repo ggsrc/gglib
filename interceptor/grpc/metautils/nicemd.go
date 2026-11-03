@@ -91,12 +91,11 @@ func (m NiceMD) Get(key string) string {
 	return vv[0]
 }
 
-// Del retrieves a single value from the metadata.
+// Del deletes all values stored under key.
 //
-// It works analogously to http.Header.Del, deleting all values if they exist.
+// It works analogously to http.Header.Del.
 //
 // The function is binary-key safe.
-
 func (m NiceMD) Del(key string) NiceMD {
 	k := strings.ToLower(key)
 	delete(m, k)

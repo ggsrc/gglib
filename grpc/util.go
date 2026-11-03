@@ -18,16 +18,16 @@ import (
 )
 
 var (
-	// CReg credID symbol regexp to find C_123
+	// CReg credID symbol regexp to find C_123.
 	CReg *regexp.Regexp = regexp.MustCompile(`C_\d+`)
-	// NReg number regexp to find number inside credential id
+	// NReg number regexp to find number inside credential id.
 	NReg *regexp.Regexp = regexp.MustCompile(`\d+`)
 )
 
-// DeviceType ...
+// DeviceType is the kind of device a request comes from.
 type DeviceType = string
 
-// Device type
+// Device types returned by GetDeviceType.
 const (
 	UNKNOWN       DeviceType = ""
 	MOBILEANDROID DeviceType = "Mobile_android"
@@ -39,7 +39,7 @@ const (
 	TV            DeviceType = "TV"
 )
 
-// GetDeviceType takes http request and returns a device type
+// GetDeviceType classifies a User-Agent header value.
 func GetDeviceType(userAgentHeader string) DeviceType {
 	if isUserAgent(userAgentHeader, "Android") {
 		return MOBILEANDROID
@@ -74,6 +74,8 @@ func isUserAgent(userAgent string, userAgents ...string) bool {
 	return false
 }
 
+// GetIPFromRequest returns the first address in X-Forwarded-For, or the
+// remote address when the header is absent. The header is trusted as is.
 func GetIPFromRequest(r *http.Request) (string, error) {
 	var ip string
 	var err error
@@ -98,6 +100,8 @@ func isIP(ipstr string) (b bool) {
 	return ip != nil
 }
 
+// GetCredIDsFromFormula returns the numbers of all "C_<n>" tokens in formula,
+// in order.
 func GetCredIDsFromFormula(formula string) []int64 {
 	credIDs := []int64{}
 	var credID int64
@@ -115,13 +119,16 @@ func GetCredIDsFromFormula(formula string) []int64 {
 	return credIDs
 }
 
+// GetNumericHash returns the 32-bit FNV-1a hash of s.
 func GetNumericHash(s string) uint32 {
 	hash := fnv.New32a()
-	hash.Write([]byte(s))
+	_, _ = hash.Write([]byte(s)) // hash.Hash.Write never returns an error
 
 	return hash.Sum32()
 }
 
+// GetMetadata returns the incoming gRPC metadata value under
+// metadata.CTX_KEY_METADATA.
 func GetMetadata(ctx context.Context) string {
 	md := metautils.ExtractIncoming(ctx)
 	return md.Get(metadata.CTX_KEY_METADATA)

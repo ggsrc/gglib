@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -90,12 +90,12 @@ func TestServer_NoError_NoLog(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo(),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return "ok", nil
 		},
 	)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "ok", resp)
 	assert.Empty(t, buf.String(), "no log should be emitted on success")
 }
@@ -109,13 +109,13 @@ func TestServer_NotFound_LogsWarn(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo(),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return nil, status.Error(codes.NotFound, "file not found")
 		},
 	)
 
 	assert.Nil(t, resp)
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	var entry logEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
@@ -134,12 +134,12 @@ func TestServer_AlreadyExists_LogsWarn(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo(),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return nil, status.Error(codes.AlreadyExists, "already exists")
 		},
 	)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	var entry logEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
@@ -155,12 +155,12 @@ func TestServer_Internal_LogsError(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo(),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return nil, status.Error(codes.Internal, "database crashed")
 		},
 	)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	var entry logEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
@@ -179,12 +179,12 @@ func TestServer_Unknown_LogsError(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo(),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return nil, status.Error(codes.Unknown, "something went wrong")
 		},
 	)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	var entry logEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
@@ -200,12 +200,12 @@ func TestServer_NonGRPCError_LogsError(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo(),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
-			return nil, fmt.Errorf("raw error")
+		func(ctx context.Context, req any) (any, error) {
+			return nil, errors.New("raw error")
 		},
 	)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	var entry logEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
@@ -228,7 +228,7 @@ func TestServer_PreservesResponseAndError(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo(),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return "partial", handlerErr
 		},
 	)
@@ -241,13 +241,13 @@ func TestServer_PassesThroughRequest(t *testing.T) {
 	var buf bytes.Buffer
 	ctx := ctxWithLogger(&buf)
 
-	var receivedReq interface{}
+	var receivedReq any
 	interceptor := UnaryServerInterceptor()
 	_, _ = interceptor(
 		ctx,
 		"my-request",
 		serverInfo(),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			receivedReq = req
 			return nil, nil
 		},
@@ -283,7 +283,7 @@ func TestClient_NoError_NoLog(t *testing.T) {
 	interceptor := UnaryClientInterceptor()
 	err := interceptor(ctx, "/svc/Method", nil, nil, nil, noopInvoker)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, buf.String())
 }
 
@@ -294,7 +294,7 @@ func TestClient_NotFound_LogsWarn(t *testing.T) {
 	interceptor := UnaryClientInterceptor()
 	err := interceptor(ctx, "/svc/Method", nil, nil, nil, errorInvoker(codes.NotFound, "not found"))
 
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	var entry logEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
@@ -310,7 +310,7 @@ func TestClient_Internal_LogsError(t *testing.T) {
 	interceptor := UnaryClientInterceptor()
 	err := interceptor(ctx, "/svc/Method", nil, nil, nil, errorInvoker(codes.Internal, "boom"))
 
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	var entry logEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
@@ -333,7 +333,7 @@ func TestClient_Unavailable_LogsError(t *testing.T) {
 		errorInvoker(codes.Unavailable, "server down"),
 	)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	var entry logEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))
@@ -354,7 +354,7 @@ func TestClient_PermissionDenied_LogsWarn(t *testing.T) {
 		errorInvoker(codes.PermissionDenied, "forbidden"),
 	)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	var entry logEntry
 	require.NoError(t, json.Unmarshal(buf.Bytes(), &entry))

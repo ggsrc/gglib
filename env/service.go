@@ -5,9 +5,8 @@ import (
 	"sync"
 )
 
-const (
-	UnknownServiceName = "UnknownService"
-)
+// UnknownServiceName is returned by ServiceName when no service name is set.
+const UnknownServiceName = "UnknownService"
 
 var (
 	serviceName    string
@@ -47,20 +46,28 @@ func init() {
 	}
 }
 
+// SetServiceName overrides the service name read from SERVICE_NAME. Only the
+// first call has an effect.
 func SetServiceName(name string) {
 	setServiceName.Do(func() {
 		serviceName = name
 	})
 }
 
+// ServiceName returns the service name from SetServiceName, SERVICE_NAME or
+// OTEL_SERVICE_NAME, or UnknownServiceName.
 func ServiceName() string {
 	return serviceName
 }
 
+// ServiceVersion returns the service version from SetServiceVersion,
+// SERVICE_VERSION, OTEL_SERVICE_VERSION or GIT_SHA, or "".
 func ServiceVersion() string {
 	return serviceVersion
 }
 
+// SetServiceVersion overrides the service version read from the environment.
+// Only the first call has an effect.
 func SetServiceVersion(version string) {
 	setServiceVersion.Do(func() {
 		serviceVersion = version

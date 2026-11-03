@@ -118,7 +118,7 @@ func (gen *idGenerator) NewIDs(ctx context.Context) (trace.TraceID, trace.SpanID
 	defer gen.Unlock()
 
 	tid := trace.TraceID{}
-	binary.BigEndian.PutUint64(tid[:8], uint64(unixNano)) //nolint:gosec
+	binary.BigEndian.PutUint64(tid[:8], uint64(unixNano))
 	_, _ = gen.randSource.Read(tid[8:])
 
 	sid := trace.SpanID{}

@@ -14,7 +14,7 @@ import (
 	"github.com/ggsrc/gglib/env"
 )
 
-// LoggerOption is a function that configures the logger
+// LoggerOption is a function that configures the logger.
 type LoggerOption func(*loggerConfig)
 
 type loggerConfig struct {
@@ -22,21 +22,21 @@ type loggerConfig struct {
 	batchSize   int
 }
 
-// WithOTLP enables OTLP export for logs
+// WithOTLP enables OTLP export for logs.
 func WithOTLP() LoggerOption {
 	return func(c *loggerConfig) {
 		c.otelEnabled = true
 	}
 }
 
-// WithBatchSize sets the OTLP export batch size
+// WithBatchSize sets the OTLP export batch size.
 func WithBatchSize(size int) LoggerOption {
 	return func(c *loggerConfig) {
 		c.batchSize = size
 	}
 }
 
-// setupLogger initializes the zerolog logger with the given options (internal use)
+// setupLogger initializes the zerolog logger with the given options (internal use).
 func setupLogger(opts ...LoggerOption) {
 	// Default configuration
 	config := &loggerConfig{

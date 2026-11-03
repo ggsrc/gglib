@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
+// Resource is a shared dependency with a lifecycle, such as a database pool.
 type Resource interface {
 	Name() string
 	Init(ctx context.Context) error
@@ -16,11 +16,13 @@ type Resource interface {
 	OK(ctx context.Context) error
 }
 
+// HealthStatus is the result of a health check.
 type HealthStatus struct {
 	Status bool
 	Error  error
 }
 
+// ResourceManager runs the lifecycle of a group of resources.
 type ResourceManager interface {
 	AddResource(resource Resource) error
 	Init(ctx context.Context) error
@@ -33,6 +35,7 @@ type resourceManager struct {
 	resources []Resource
 }
 
+// NewResourceManager returns a ResourceManager for resources.
 func NewResourceManager(resources []Resource) ResourceManager {
 	return &resourceManager{
 		resources: resources,
@@ -61,7 +64,7 @@ func (rm *resourceManager) Start(ctx context.Context) error {
 			err := r.Start(errCtx)
 			if err != nil {
 				fmt.Printf("failed to start resource:%s, err:%v", r.Name(), err)
-				return errors.Wrapf(err, "failed to start resource:%s", r.Name())
+				return fmt.Errorf("failed to start resource:%s: %w", r.Name(), err)
 			}
 			return nil
 		})

@@ -1,83 +1,202 @@
-# The only possible value is "2".
+# golangci-lint v2 configuration for gglib.
+#
+# gglib is a public, multi-module library that every Alva Go service builds
+# on, so the rules are stricter than for service code: every exported
+# identifier is documented, the library never exits the process or prints to
+# stdout, errors are wrapped with the standard library, and correctness,
+# security and test-style linters are on. Run it per module (`make lint`); the
+# Makefile runs each module with GOWORK=off.
 version: "2"
 
-# Options for analysis running.
 run:
-  timeout: 10m # 
-  # Which dirs to skip: issues from them won't be reported.
-  # Can use regexp here: `generated.*`, regexp is applied on full path.
-  # Default value is empty list,
-  # but default dirs are skipped independently of this option's value (see skip-dirs-use-default).
-  # "/" will be replaced by current OS file path separator to properly work on Windows.
-  modules-download-mode: readonly # 
-  go: '1.27'
+  go: "1.27"
+  timeout: 10m
+  modules-download-mode: readonly
+  tests: true
 
 linters:
-  enable: # 
-    - asciicheck
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    # Correctness.
+    - asasalint
     - bodyclose
-    - dogsled
-    - copyloopvar
-    - goconst
-    - gosec
-    - unconvert
-    - misspell
-    - reassign
-    - mirror
+    - contextcheck
     - durationcheck
-    - whitespace
-    - usetesting
+    - errchkjson
+    - errorlint
+    - exhaustive
+    - fatcontext
+    - forcetypeassert
+    - gocheckcompilerdirectives
+    - makezero
+    - musttag
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - noctx
+    - promlinter
+    - reassign
+    - recvcheck
+    - rowserrcheck
+    - spancheck
+    - sqlclosecheck
+    - zerologlint
+    # Security.
+    - asciicheck
     - bidichk
-  exclusions:
-    generated: lax
-    presets:
-      - comments
-      - common-false-positives
-      - legacy
-    rules:
-      - path: _test\.go
-        linters:
-          - gosec
-          - goconst
-    paths:
-      - pkg/generated
-      - pkg/internal
-      - pkg/model
+    - gosec
+    # Library hygiene and style.
+    - copyloopvar
+    - depguard
+    - dupword
+    - errname
+    - forbidigo
+    - gochecknoinits
+    - gocritic
+    - godot
+    - intrange
+    - mirror
+    - misspell
+    - modernize
+    - nolintlint
+    - perfsprint
+    - predeclared
+    - revive
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
+    # Tests.
+    - testifylint
+    - thelper
+    - tparallel
+
   settings:
+    errcheck:
+      check-type-assertions: true
+    exhaustive:
+      # A switch with a default case handles every value.
+      default-signifies-exhaustive: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment # struct layout is not worth the churn
+        - shadow # too noisy for `err` shadowing
     staticcheck:
-      checks: 
-        - all
-        - -S1039 
-        - -ST1000
-        - -ST1003
-        - -ST1016
-        - -ST1020
-        - -ST1021
-        - -ST1022
-    dogsled:
-      max-blank-identifiers: 3
+      checks: ["all"]
+    gocritic:
+      enabled-tags: [diagnostic, performance]
+      disabled-checks:
+        # Passing small structs such as zerolog.Logger or mctx.User by value
+        # is part of the public API; switching to pointers would break callers.
+        - hugeParam
     misspell:
       locale: US
-    
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            # Names such as context.ContextUnaryServerInterceptor and
+            # resource.ResourceManager are public API used by services.
+            - disableStutteringCheck
+        - name: package-comments
+        - name: var-naming
+        - name: receiver-naming
+        - name: error-strings
+        - name: error-naming
+        - name: error-return
+        - name: errorf
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: blank-imports
+        - name: dot-imports
+        - name: range
+        - name: time-naming
+        - name: increment-decrement
+        - name: superfluous-else
+        - name: unreachable-code
+        - name: redefines-builtin-id
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: github.com/alva-ai
+              desc: gglib is a public library; Alva-specific code does not belong here
+            - pkg: github.com/ggsrc/gopkg
+              desc: gopkg is the frozen predecessor; use the gglib module instead
+            - pkg: io/ioutil
+              desc: deprecated; use io and os
+            - pkg: github.com/pkg/errors
+              desc: use the standard errors package and fmt.Errorf with %w
+            - pkg: github.com/golang/protobuf
+              desc: deprecated; use google.golang.org/protobuf
+    forbidigo:
+      analyze-types: true
+      forbid:
+        - pattern: ^os\.Exit$
+          msg: a library must return errors, not exit the process
+        - pattern: ^log\.Fatal.*$
+          msg: a library must return errors, not exit the process
+        - pattern: ^(zerolog\.Logger\.|zerolog\.Event\.)?Fatal$
+          msg: a library must return errors, not exit the process
+        - pattern: ^fmt\.Print.*$
+          msg: use the logger
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+
+  exclusions:
+    generated: strict
+    presets:
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters: [errcheck, forcetypeassert, goconst, godot, gosec, nilnil, revive]
+
+      # zerolog/log mirrors github.com/rs/zerolog/log: these functions return
+      # an event for the caller to dispatch, which zerologlint cannot see, and
+      # the mirror includes Fatal for callers (gglib itself never calls it).
+      - path: zerolog/log/ctx\.go
+        linters: [forbidigo, zerologlint]
+
+      # ------------------------------------------------------------------
+      # Temporary. Each rule below covers code that changes behavior when it
+      # is fixed, or code that is replaced, and is removed by the module PR
+      # named in its comment (alva-ai/mono-meta#1115, gglib route).
+      # ------------------------------------------------------------------
+
+      # otel and utils: replaced by the single observability entry point (G5).
+      - path: ^(otel|utils)/
+        linters: [contextcheck, errcheck, exhaustive, forcetypeassert, gocritic, nolintlint, predeclared, revive, spancheck, staticcheck]
+      # app: telemetry and logging setup move to the G5 entry point.
+      - path: ^app/app\.go
+        linters: [contextcheck]
+      # env: init() becomes lazy, explicit initialization (env PR).
+      - path: ^env/
+        linters: [gochecknoinits]
+      # resource: the Printf goes away when start errors are logged properly
+      # (resource PR).
+      - path: ^resource/resource\.go
+        linters: [forbidigo]
+      # resource/cache: Init returns errors instead of exiting, takes the
+      # caller's context, and the ElastiCache TLS override is removed
+      # (resource/cache PR).
+      - path: ^resource/cache/(redis|cache|dcache)\.go
+        linters: [contextcheck, forbidigo, gocritic, nolintlint, staticcheck]
 
 formatters:
-  # Enable specific formatter.
-  # Default: [] (uses standard Go formatting)
   enable:
     - gci
-    - gofmt
     - gofumpt
     - goimports
-    - golines
   settings:
     gci:
-      # Section configuration to compare against.
-      # Section names are case-insensitive and may contain parameters in ().
-      # Default: ["standard", "default"]
       sections:
-        - standard # Captures all standard packages if they do not match another section.
-        - default # Contains all imports that could not be matched to another section type.
-        - prefix(github.com/ggsrc) # our internal packages
-      # Separators that should be present between sections.
-      # Default: ["newLine"]
+        - standard
+        - default
+        - prefix(github.com/ggsrc/gglib)
       custom-order: true

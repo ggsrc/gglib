@@ -5,9 +5,8 @@ import (
 	"sync"
 )
 
-const (
-	UnknownBuildTime = "BuildTime"
-)
+// UnknownBuildTime is returned by BuildTime when no build time is set.
+const UnknownBuildTime = "BuildTime"
 
 var (
 	buildTime    string
@@ -30,12 +29,16 @@ func init() {
 	}
 }
 
+// SetBuildTime overrides the build time read from BUILD_TIME. Only the first
+// call has an effect.
 func SetBuildTime(time string) {
 	setBuildTime.Do(func() {
 		buildTime = time
 	})
 }
 
+// BuildTime returns the build time from SetBuildTime or BUILD_TIME, or
+// UnknownBuildTime.
 func BuildTime() string {
 	return buildTime
 }

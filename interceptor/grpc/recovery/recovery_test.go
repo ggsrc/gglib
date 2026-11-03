@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -44,7 +44,7 @@ func TestServer_PanicRecovery_ReturnsError(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			panic("something broke")
 		},
 	)
@@ -63,7 +63,7 @@ func TestServer_PanicRecovery_LogsPanic(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			panic("kaboom")
 		},
 	)
@@ -95,7 +95,7 @@ func TestServer_PanicRecovery_CallsPanicHandler(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo("/test.Svc/Explode"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			panic("boom")
 		},
 	)
@@ -114,7 +114,7 @@ func TestServer_PanicRecovery_NilPanicHandler(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			panic("safe with nil handler")
 		},
 	)
@@ -132,7 +132,7 @@ func TestServer_PanicRecovery_NonStringPanic(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			panic(42)
 		},
 	)
@@ -154,8 +154,8 @@ func TestServer_PanicRecovery_ErrorPanic(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo("/test.Svc/Crash"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
-			panic(fmt.Errorf("wrapped error"))
+		func(ctx context.Context, req any) (any, error) {
+			panic(errors.New("wrapped error"))
 		},
 	)
 
@@ -179,12 +179,12 @@ func TestServer_NoPanic_PassesThroughSuccess(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo("/test.Svc/OK"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return "result", nil
 		},
 	)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "result", resp)
 	assert.Empty(t, buf.String(), "no log on normal flow")
 }
@@ -199,7 +199,7 @@ func TestServer_NoPanic_PassesThroughError(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo("/test.Svc/NotFound"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return nil, handlerErr
 		},
 	)
@@ -219,7 +219,7 @@ func TestServer_NoPanic_PassesThroughInternalError(t *testing.T) {
 		ctx,
 		"req",
 		serverInfo("/test.Svc/Fail"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return nil, handlerErr
 		},
 	)
@@ -232,13 +232,13 @@ func TestServer_NoPanic_PassesThroughRequest(t *testing.T) {
 	var buf bytes.Buffer
 	ctx := ctxWithLogger(&buf)
 
-	var received interface{}
+	var received any
 	interceptor := UnaryServerInterceptor(nil)
 	_, _ = interceptor(
 		ctx,
 		"my-data",
 		serverInfo("/test.Svc/Echo"),
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			received = req
 			return req, nil
 		},
@@ -364,7 +364,7 @@ func TestClient_NoPanic_PassesThroughSuccess(t *testing.T) {
 	interceptor := UnaryClientInterceptor(nil)
 	err := interceptor(ctx, "/test.Svc/Call", nil, nil, nil, noopInvoker)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, buf.String())
 }
 

@@ -23,15 +23,16 @@ var (
 		"two",
 		"multikey",
 		"three",
-	} //nolint // Required for test
+	}
 	parentCtx = context.WithValue(
 		context.TODO(),
-		"parentKey", // nolint
+		"parentKey", //nolint:staticcheck // the test needs a plain string key
 		"parentValue",
-	) //nolint // Required for test
+	)
 )
 
 func assertRetainsParentContext(t *testing.T, ctx context.Context) {
+	t.Helper()
 	x := ctx.Value("parentKey")
 	assert.EqualValues(t, "parentValue", x, "context must contain parentCtx")
 }
@@ -53,13 +54,13 @@ func TestNiceMD_Del(t *testing.T) {
 func TestNiceMD_Add(t *testing.T) {
 	nmd := metautils.NiceMD(metadata.Pairs(testPairs...))
 	nmd.Add("multikey", "four").Add("newkey", "something")
-	assert.EqualValues(
+	assert.Equal(
 		t,
 		[]string{"one", "two", "three", "four"},
 		nmd["multikey"],
 		"append should add a new four at the end",
 	)
-	assert.EqualValues(
+	assert.Equal(
 		t,
 		[]string{"something"},
 		nmd["newkey"],
@@ -70,34 +71,34 @@ func TestNiceMD_Add(t *testing.T) {
 func TestNiceMD_Set(t *testing.T) {
 	nmd := metautils.NiceMD(metadata.Pairs(testPairs...))
 	nmd.Set("multikey", "one").Set("newkey", "something").Set("newkey", "another")
-	assert.EqualValues(
+	assert.Equal(
 		t,
 		[]string{"one"},
 		nmd["multikey"],
 		"set should override existing multi keys",
 	)
-	assert.EqualValues(t, []string{"another"}, nmd["newkey"], "set should override new keys")
+	assert.Equal(t, []string{"another"}, nmd["newkey"], "set should override new keys")
 }
 
 func TestNiceMD_SetGet(t *testing.T) {
 	nmd := metautils.NiceMD(metadata.Pairs(testPairs...))
 	nmd.Set("another-key", "onetwothree")
-	assert.EqualValues(t, "onetwothree", nmd.Get("another-key"))
+	assert.Equal(t, "onetwothree", nmd.Get("another-key"))
 	nmd.Set("another-key-bin", "binarydata")
-	assert.EqualValues(t, "binarydata", nmd.Get("another-key-bin"))
+	assert.Equal(t, "binarydata", nmd.Get("another-key-bin"))
 }
 
 func TestNiceMD_Clone(t *testing.T) {
 	nmd := metautils.NiceMD(metadata.Pairs(testPairs...))
 	fullCopied := nmd.Clone()
-	assert.Equal(t, len(fullCopied), len(nmd), "clone full should copy all keys")
+	assert.Len(t, nmd, len(fullCopied), "clone full should copy all keys")
 	assert.Equal(t, "uno", fullCopied.Get("singlekey"), "full copied should have content")
 	subCopied := nmd.Clone("multikey")
 	assert.Len(t, subCopied, 1, "sub copied clone should only have one key")
 	assert.Empty(t, subCopied.Get("singlekey"), "there shouldn't be a singlekey in the subcopied")
 
 	// Test side effects and full copying:
-	assert.EqualValues(
+	assert.Equal(
 		t,
 		subCopied["multikey"],
 		nmd["multikey"],
