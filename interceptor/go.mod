@@ -3,8 +3,8 @@ module github.com/ggsrc/gglib/interceptor
 go 1.27.0
 
 require (
-	github.com/ggsrc/gglib/mctx v0.0.0-20261013145132-b474e434e730
-	github.com/ggsrc/gglib/zerolog v0.0.0-20261013145132-b474e434e730
+	github.com/ggsrc/gglib/mctx v0.1.0
+	github.com/ggsrc/gglib/zerolog v0.1.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/otel v1.47.0
