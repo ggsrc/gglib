@@ -2,10 +2,23 @@ package mctx
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/bytedance/sonic"
 )
+
+// MaxAppCtxSize is the size, in bytes, of the largest serialized AppContext
+// that StringToAppCtx parses. A typical one is a few hundred bytes.
+const MaxAppCtxSize = 32 << 10
+
+// ErrAppCtxTooLarge is returned by StringToAppCtx for input larger than
+// MaxAppCtxSize.
+var ErrAppCtxTooLarge = errors.New("mctx: app context is larger than MaxAppCtxSize")
+
+// decoder keeps numbers in Extras exact: they decode to json.Number instead
+// of float64, which loses precision above 2^53.
+var decoder = sonic.Config{UseNumber: true}.Froze()
 
 type key string
 
@@ -13,6 +26,11 @@ const appCtxKey = key("appCtxKey")
 
 // AppContext is the request context passed between services: the calling
 // user and the request's common parameters.
+//
+// Every field comes from the caller. Services must not treat the user, IP or
+// time as verified unless they authenticated the caller themselves. An
+// AppContext stored in a context is shared; do not modify it from several
+// goroutines.
 type AppContext struct {
 	User         User             `json:"user"`
 	CommonParams *ReqCommonParams `json:"common_params"`
@@ -29,7 +47,8 @@ type ReqCommonParams struct {
 	ReqTime   int64     `json:"req_time,omitempty"`
 	Now       time.Time `json:"now"`
 
-	// Extras custom fields
+	// Extras holds custom fields. Numbers parsed by StringToAppCtx are
+	// json.Number values.
 	Extras map[string]any `json:"extras,omitempty"`
 }
 
@@ -64,11 +83,14 @@ func ContextWithAppCtx(ctx context.Context, value *AppContext) context.Context {
 
 // StringToAppCtx parses an AppContext from its JSON form. A missing
 // CommonParams is replaced by an empty one, and a zero Now is set to the
-// current time.
+// current time. Numbers in Extras keep their exact value as json.Number.
+// Input larger than MaxAppCtxSize is rejected with ErrAppCtxTooLarge.
 func StringToAppCtx(s string) (*AppContext, error) {
+	if len(s) > MaxAppCtxSize {
+		return nil, ErrAppCtxTooLarge
+	}
 	var appCtx AppContext
-	err := sonic.UnmarshalString(s, &appCtx)
-	if err != nil {
+	if err := decoder.UnmarshalFromString(s, &appCtx); err != nil {
 		return nil, err
 	}
 	if appCtx.CommonParams == nil {

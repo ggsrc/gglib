@@ -18,13 +18,6 @@ type User struct {
 	AppID    int32  `json:"app_id"`
 	UserID   string `json:"user_id"`
 	DeviceID string `json:"device_id"`
-
-	Address     string `json:"address"`
-	SignAt      string `json:"sign_at"`
-	Signature   string `json:"signature"`
-	AccessToken string `json:"access_token"`
-
-	JwtString string `json:"-"`
 }
 
 // String returns the user as "app<AppID>/u<UserID>/d<DeviceID>".
