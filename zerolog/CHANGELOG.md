@@ -15,6 +15,17 @@ the last commit before the first release work.
 - `go.mod` is complete on its own; sibling gglib modules are required at
   matching versions.
 
+### Fixed
+
+- **`log.Ctx` no longer drops events silently.** With no logger in the
+  context and `zerolog.DefaultContextLogger` unset, it returned a disabled
+  logger, so every `log.Ctx(ctx).Error()…` was thrown away; this is what
+  happened in alva-gateway (318 call sites) and trex, and in gglib's own
+  panic and error logs before `zerolog.InitLogger` ran. It now falls back to
+  the global logger.
+- `log.Ctx` binds `ctx` to the returned logger, so hooks (for example the
+  OTLP bridge) can read the span from the event.
+
 ### Changed
 
 - `zerolog/log` tests no longer need Uptrace variables.

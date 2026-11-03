@@ -10,10 +10,20 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Ctx returns the logger stored in ctx, or zerolog.DefaultContextLogger, or a
-// disabled logger when neither is set.
+// Ctx returns the logger for ctx: the logger stored in ctx, else
+// zerolog.DefaultContextLogger, else the global logger. It never returns a
+// disabled logger because none was configured; before, such events were
+// dropped silently. The returned logger is bound to ctx, so hooks can read
+// the span from the event's context.
 func Ctx(ctx context.Context) *zerolog.Logger {
-	return zerolog.Ctx(ctx)
+	base := zerolog.Ctx(ctx)
+	if base.GetLevel() == zerolog.Disabled {
+		// zerolog.Ctx returns a disabled logger when ctx carries none and no
+		// default is set.
+		base = &log.Logger
+	}
+	l := base.With().Ctx(ctx).Logger()
+	return &l
 }
 
 // Output duplicates the global logger and sets w as its output.
