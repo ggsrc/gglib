@@ -184,11 +184,6 @@ linters:
       - path: ^resource/resource\.go
         linters: [forbidigo]
 
-      # resource/cache: Init returns errors instead of exiting, takes the
-      # caller's context, and the ElastiCache TLS override is removed
-      # (resource/cache PR).
-      - path: ^resource/cache/(redis|cache|dcache)\.go
-        linters: [contextcheck, forbidigo, gocritic, nolintlint, staticcheck]
 
 formatters:
   enable:

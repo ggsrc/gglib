@@ -1,25 +1,29 @@
-// Package cache provides a Redis client and a two-level cache (in-memory plus
-// Redis, built on github.com/stumble/dcache) as a resource.Resource.
+// Package cache provides Redis as a resource.Resource: Redis, a plain client,
+// and Cache, a client plus a two-level cache (in-memory and Redis, built on
+// github.com/stumble/dcache).
 package cache
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/redis/go-redis/v9"
 	"github.com/stumble/dcache"
 )
 
-// Cache is a resource that owns a Redis client and a dcache.DCache.
+// Cache is a resource that owns a Redis client and a dcache.DCache built on
+// it. Services that only need the client should use Redis.
 type Cache struct {
-	initialized  bool
 	appName      string
-	redisClient  redis.UniversalClient
-	dCache       *dcache.DCache
 	redisConfig  *RedisConfig
 	dCacheConfig *DCacheConfig
+
+	mu          sync.Mutex
+	redisClient redis.UniversalClient
+	dCache      *dcache.DCache
 }
 
 // NewCacheWithDefaultEnvPrefix returns a Cache configured from REDIS_* and
@@ -42,7 +46,7 @@ func NewCache(appName string, redisEnvPrefix string, dcacheEnvPrefix string) *Ca
 // if either configuration is nil.
 func NewCacheWithConfig(appName string, redisCfg *RedisConfig, dcacheCfg *DCacheConfig) *Cache {
 	if redisCfg == nil || dcacheCfg == nil {
-		panic("cfg cannot be nil")
+		panic("cache: RedisConfig and DCacheConfig cannot be nil")
 	}
 	return &Cache{
 		appName:      appName,
@@ -59,12 +63,10 @@ func NewCacheWithOptions(opts ...Option) *Cache {
 		opt(c)
 	}
 	if c.redisConfig == nil || c.dCacheConfig == nil {
-		panic(
-			"redisConfig and dcacheConfig cannot be nil, use WithRedisConfig/WithRedisEnvPrefix and WithDCacheConfig/WithDCacheEnvPrefix",
-		)
+		panic("cache: use WithRedisConfig or WithRedisEnvPrefix, and WithDCacheConfig or WithDCacheEnvPrefix")
 	}
 	if c.appName == "" {
-		panic("appName cannot be empty, use WithAppName")
+		panic("cache: app name cannot be empty, use WithAppName")
 	}
 	return c
 }
@@ -74,57 +76,73 @@ func (c *Cache) Name() string {
 	return "cache"
 }
 
-// Init connects to Redis and creates the dcache.
+// Init connects to Redis and creates the dcache. It returns an error, and
+// leaves nothing open, if either step fails.
 func (c *Cache) Init(ctx context.Context) error {
-	c.redisClient = c.newRedisClientWithConfig()
-	dCache, err := c.newDCacheWithConfig()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.redisClient != nil {
+		return errors.New("cache: already initialized")
+	}
+	client, err := connectRedis(ctx, c.redisConfig)
 	if err != nil {
 		return err
 	}
-	c.dCache = dCache
-	c.initialized = true
+	d, err := newDCache(c.appName, client, c.dCacheConfig)
+	if err != nil {
+		_ = client.Close()
+		return err
+	}
+	c.redisClient, c.dCache = client, d
 	return nil
 }
 
-// Start returns an error if Init has not been called.
-func (c *Cache) Start(ctx context.Context) error {
-	if !c.initialized {
-		return errors.New("cache not initialized")
+// Start returns an error if Init has not succeeded.
+func (c *Cache) Start(context.Context) error {
+	if c.GetRedisClient() == nil {
+		return errNotInitialized
 	}
 	return nil
 }
 
-// Stop closes the dcache and then the Redis client.
-func (c *Cache) Stop(ctx context.Context) error {
-	if c.dCache != nil {
-		c.dCache.Close()
+// Stop closes the dcache and then the Redis client. It is safe to call more
+// than once.
+func (c *Cache) Stop(context.Context) error {
+	c.mu.Lock()
+	d, client := c.dCache, c.redisClient
+	c.dCache, c.redisClient = nil, nil
+	c.mu.Unlock()
+	if d != nil {
+		d.Close()
 	}
-	if c.redisClient != nil {
-		err := c.redisClient.Close()
-		if err != nil {
-			return err
-		}
+	if client != nil {
+		return client.Close()
 	}
 	return nil
 }
 
-// OK pings Redis through the dcache.
+// OK pings Redis through the dcache. It returns an error before Init.
 func (c *Cache) OK(ctx context.Context) error {
-	if c.dCache != nil {
-		err := c.dCache.Ping(ctx)
-		if err != nil {
-			return fmt.Errorf("dcache health check failed: %w", err)
-		}
+	d := c.GetDCache()
+	if d == nil {
+		return errNotInitialized
+	}
+	if err := d.Ping(ctx); err != nil {
+		return fmt.Errorf("dcache health check failed: %w", err)
 	}
 	return nil
 }
 
-// GetRedisClient returns the Redis client, or nil before Init.
+// GetRedisClient returns the Redis client, or nil before Init and after Stop.
 func (c *Cache) GetRedisClient() redis.UniversalClient {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.redisClient
 }
 
-// GetDCache returns the dcache, or nil before Init.
+// GetDCache returns the dcache, or nil before Init and after Stop.
 func (c *Cache) GetDCache() *dcache.DCache {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.dCache
 }
