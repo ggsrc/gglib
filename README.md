@@ -72,7 +72,7 @@ make tidy-check   # go mod tidy -diff
 make build        # go build -mod=readonly ./...
 make vet
 make test         # go test -race
-make cover        # tests with coverage, checked against .github/coverage.txt
+make cover        # tests with coverage, checked against <module>/.coverage-floor
 make lint         # golangci-lint (configuration in .golangci.yml)
 make lint-fix     # golangci-lint --fix
 make vulncheck    # govulncheck
@@ -81,7 +81,7 @@ make vulncheck    # govulncheck
 CI (`.github/workflows/ci.yml`) runs the same checks per module on every pull
 request and push to `main`, and weekly so that new vulnerability advisories
 show up. `ci-ok` is the single required check. Coverage may not drop below a
-module's floor in `.github/coverage.txt`; raise the floor when you raise
+module's floor in `<module>/.coverage-floor`; raise the floor when you raise
 coverage. Dependabot proposes grouped dependency updates weekly.
 
 ## Releasing

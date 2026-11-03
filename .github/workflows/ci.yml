@@ -43,7 +43,7 @@ jobs:
           modules=$(find . -name go.mod -not -path './.git/*' -exec dirname {} \; | sed 's|^\./||' | sort)
           echo "modules=$(printf '%s\n' $modules | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
           for m in $modules; do
-            grep -qE "^$m[[:space:]]" .github/coverage.txt || { echo "::error::$m has no floor in .github/coverage.txt"; exit 1; }
+            test -s "$m/.coverage-floor" || { echo "::error::$m has no $m/.coverage-floor"; exit 1; }
             grep -qF "\"/$m\"" .github/dependabot.yml || { echo "::error::$m is missing from .github/dependabot.yml"; exit 1; }
           done
       - name: sibling replaces are complete

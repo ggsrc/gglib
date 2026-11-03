@@ -31,7 +31,8 @@ Tracking: alva-ai/mono-meta#1115 (layer L1, gglib). Fourth PR before
   gglib module in its build graph at the directory in this repository
   (`scripts/replaces.sh`, `make replaces`). Builds and tests always use the
   code of the same commit. Consumers ignore `replace` and resolve `require`.
-- **Coverage floors** (`.github/coverage.txt`): today's coverage per module
+- **Coverage floors** (`<module>/.coverage-floor`, one file per module so
+  that module PRs never conflict): today's coverage per module
   (app 16.7, interceptor 43.8, zerolog 2.8, the rest 0). CI fails below a
   floor; each module PR raises its floor towards the targets (80, or 90 for
   app, health, mctx, resource and the interceptor).
@@ -65,7 +66,7 @@ Tracking: alva-ai/mono-meta#1115 (layer L1, gglib). Fourth PR before
 
 ## 4. Changes
 
-- New: `.github/workflows/ci.yml`, `.github/coverage.txt`,
+- New: `.github/workflows/ci.yml`, `*/.coverage-floor`,
   `.github/dependabot.yml`, `scripts/replaces.sh`,
   `scripts/coverage-check.sh`, `scripts/release.sh`, `*/CHANGELOG.md`.
 - All `go.mod`/`go.sum`: replace block for sibling modules; go.sum entries for

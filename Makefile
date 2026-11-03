@@ -28,7 +28,7 @@ vet:
 test:
 	@for m in $(MODULES); do echo "--> test $$m"; (cd $$m && go test -mod=readonly -race -count=1 ./...) || exit 1; done
 
-# Tests with coverage, checked against the floors in .github/coverage.txt.
+# Tests with coverage, checked against each module's .coverage-floor.
 cover:
 	@for m in $(MODULES); do echo "--> cover $$m"; (cd $$m && go test -mod=readonly -race -count=1 -covermode=atomic -coverprofile=coverage.out ./... >/dev/null && $(CURDIR)/scripts/coverage-check.sh $$m coverage.out; status=$$?; rm -f coverage.out; exit $$status) || exit 1; done
 

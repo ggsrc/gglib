@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Checks a module's coverage profile against its floor in .github/coverage.txt.
+# Checks a module's coverage profile against its floor, the number in
+# <module>/.coverage-floor (minimum statement coverage in percent). Raise the
+# floor in the PR that raises coverage; never lower it. Targets for v0.1.0:
+# 80 for every module, 90 for app, health, mctx, resource and the
+# interceptor (request context, recovery).
 #
 # Usage, from the module directory:
 #   go test -coverprofile=coverage.out ./...
@@ -10,9 +14,9 @@ module=${1:?module}
 profile=${2:?coverage profile}
 
 total=$(go tool cover -func="$profile" | awk '/^total:/ { sub("%", "", $NF); print $NF }')
-floor=$(awk -v m="$module" '!/^#/ && $1 == m { print $2 }' "$root/.github/coverage.txt")
+floor=$(tr -d '[:space:]' < "$root/$module/.coverage-floor" 2>/dev/null || true)
 if [ -z "$floor" ]; then
-  echo "no coverage floor for $module in .github/coverage.txt" >&2
+  echo "no coverage floor for $module: create $module/.coverage-floor" >&2
   exit 1
 fi
 echo "$module: coverage ${total}% (floor ${floor}%)"
