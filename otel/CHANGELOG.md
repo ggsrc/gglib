@@ -17,6 +17,29 @@ the last commit before the first release work.
 
 ### Changed
 
+- **Rewritten as the single observability entry point (G5).** One call,
+  `otel.Setup(ctx, opts...)`, returns a shutdown function:
+  - always installs an SDK tracer provider and the W3C trace-context and
+    baggage propagator, so spans have real ids even when nothing is exported;
+  - exports over OTLP/HTTP to the endpoint in `OTEL_EXPORTER_OTLP_*`
+    (no endpoint, or `OTEL_SDK_DISABLED=true`: nothing is exported);
+  - traces on by default; metrics (`WithMetrics`, G10) and logs
+    (`WithLogs`, G11) off by default; runtime metrics opt-in;
+  - one resource for every service: `service.name`, `service.version`,
+    `deployment.environment.name` (plus `deployment.environment` for
+    Uptrace), host, and `k8s.pod.name`/`k8s.namespace.name` from
+    `POD_NAME`/`POD_NAMESPACE`; `OTEL_RESOURCE_ATTRIBUTES` and options
+    override;
+  - composable options: sampler (default: SDK, `OTEL_TRACES_SAMPLER`),
+    propagator, extra span processors, metric readers and log processors;
+  - the shutdown flushes traces, then metrics, then logs, once.
 - `otel` is a module again (its `go.mod` had been deleted).
-- OpenTelemetry v1.47; the log SDK is stable (v1.47).
-- Uses `otel.SetLoggerProvider` instead of the deprecated `log/global`.
+- OpenTelemetry v1.47.
+
+### Removed
+
+- The previous API (`ConfigureOpenTelemetry`, `Shutdown`, `ForceFlush`,
+  `TracerProvider`, `TraceURL`, `ReportError`, `ReportPanic` and the
+  `With*` options of the old design). It had no users and several proven
+  bugs (an empty endpoint, credentials in logs, overwritten service name).
+- No longer depends on `gglib/zerolog`.
