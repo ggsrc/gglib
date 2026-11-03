@@ -212,7 +212,7 @@ func TestConstructorsAndStart(t *testing.T) {
 	s := InitHealthCheck(&dep{})
 	t.Cleanup(s.Close)
 	assert.Equal(t, 8080, s.conf.Port)
-	assert.Equal(t, 5*time.Minute, s.conf.StuckAfter)
+	assert.Equal(t, 3*time.Minute, s.conf.StuckAfter)
 	assert.True(t, s.conf.Ready)
 
 	mux := http.NewServeMux()

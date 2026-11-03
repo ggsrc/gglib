@@ -43,7 +43,7 @@ type Config struct {
 	ProbeInterval time.Duration `default:"5s"`
 	ProbeTimeout  time.Duration `default:"5s"`
 	ReadyCount    int
-	StuckAfter    time.Duration `default:"5m"`
+	StuckAfter    time.Duration `default:"3m"`
 	Ready         bool          `default:"true"`
 	Alive         bool          `default:"true"`
 }

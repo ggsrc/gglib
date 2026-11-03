@@ -20,8 +20,8 @@ the last commit before the first release work.
 - **Liveness no longer follows the dependency checks (G4).** A database or
   Redis outage makes readiness fail (no traffic) and readiness recovers by
   itself when the checks pass again; it no longer restarts every pod at
-  once. As a safety net (G13, recommended option), liveness fails when the
-  checks have kept failing for longer than `StuckAfter` (default 5 minutes:
+  once. As a safety net (G13), liveness fails when the
+  checks have kept failing for longer than `StuckAfter` (default 3 minutes:
   the dependency is back but this instance did not recover) or when the
   check loop stops running.
 - **Every check has a timeout** (`ProbeTimeout`); a check that never returns
