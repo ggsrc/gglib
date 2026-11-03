@@ -78,7 +78,7 @@ func TestLifecycleOrder(t *testing.T) {
 	require.NoError(t, rm.Start(t.Context()))
 	require.NoError(t, rm.OK(t.Context()))
 	require.NoError(t, rm.Stop(t.Context()))
-	assert.Equal(t, []string{"init db", "init cache", "start db", "start cache", "stop db", "stop cache"}, rec.list())
+	assert.Equal(t, []string{"init db", "init cache", "start db", "start cache", "stop cache", "stop db"}, rec.list())
 }
 
 func TestInitStopsAtFirstError(t *testing.T) {
@@ -114,7 +114,18 @@ func TestStartFailureStopsEverything(t *testing.T) {
 	require.ErrorIs(t, err, fs[1].startErr)
 	require.ErrorIs(t, err, fs[0].stopErr)
 	assert.Contains(t, err.Error(), "resource cache: start: bad")
-	assert.Equal(t, []string{"start db", "start cache", "stop db", "stop cache", "stop worker"}, rec.list())
+	assert.Equal(t, []string{"start db", "start cache", "stop worker", "stop cache", "stop db"}, rec.list())
+}
+
+// Stop used to run in registration order, so a database pool registered before
+// the worker that writes to it was closed while the worker was still running.
+func TestStopRunsInReverseRegistrationOrder(t *testing.T) {
+	rec := &recorder{}
+	rm := manager(newFakes(rec, "db", "cache")...)
+	require.NoError(t, rm.AddResource(&fake{name: "worker", rec: rec}))
+
+	require.NoError(t, rm.Stop(t.Context()))
+	assert.Equal(t, []string{"stop worker", "stop cache", "stop db"}, rec.list())
 }
 
 // Stop used to give up at the first error, leaking the rest.

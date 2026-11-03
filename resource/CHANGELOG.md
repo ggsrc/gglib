@@ -35,6 +35,11 @@ the last commit before the first release work.
 
 ### Changed
 
+- **`Stop` runs in reverse registration order.** Register a dependency (a
+  database pool) before the resources that use it; they then stop before it.
+  Before, `Stop` ran in registration order, so services that wanted users
+  stopped first registered them first. Reverse that registration order when
+  upgrading (alfs and stream-relay do this today).
 - `Start` runs the resources one by one, in order, instead of in parallel.
 
 ### Removed

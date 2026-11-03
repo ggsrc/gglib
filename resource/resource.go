@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 )
 
@@ -34,7 +35,9 @@ type resourceManager struct {
 }
 
 // NewResourceManager returns a ResourceManager for resources. Resources are
-// initialized and started in the order given.
+// initialized and started in the order given and stopped in reverse order, so
+// register a dependency (a database pool) before the resources that use it (a
+// worker that writes to it): the worker then stops first.
 func NewResourceManager(resources []Resource) ResourceManager {
 	return &resourceManager{
 		resources: append([]Resource(nil), resources...),
@@ -56,9 +59,12 @@ func (rm *resourceManager) snapshot() []Resource {
 	return append([]Resource(nil), rm.resources...)
 }
 
-// stopOrder is the order Stop uses: the order the resources were given.
+// stopOrder is the order Stop uses: the reverse of registration, so a resource
+// stops before the resources registered ahead of it, which it may use.
 func (rm *resourceManager) stopOrder() []Resource {
-	return rm.snapshot()
+	rs := rm.snapshot()
+	slices.Reverse(rs)
+	return rs
 }
 
 // Init initializes the resources one by one, in order, and returns the first
@@ -85,9 +91,9 @@ func (rm *resourceManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops every resource, even when some fail, and returns their errors
-// joined, each prefixed with the resource name. Only the first call stops
-// anything; later calls return nil.
+// Stop stops every resource in reverse registration order, even when some
+// fail, and returns their errors joined, each prefixed with the resource name.
+// Only the first call stops anything; later calls return nil.
 func (rm *resourceManager) Stop(ctx context.Context) error {
 	rm.mu.Lock()
 	if rm.stopped {
