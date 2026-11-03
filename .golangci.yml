@@ -170,9 +170,6 @@ linters:
       # ------------------------------------------------------------------
 
 
-      # utils: replaced by the single observability entry point (G5).
-      - path: ^utils/
-        linters: [contextcheck, errcheck, exhaustive, forcetypeassert, gocritic, nolintlint, predeclared, revive, spancheck, staticcheck]
 
       # app: telemetry and logging setup move to the G5 entry point.
       - path: ^app/app\.go
