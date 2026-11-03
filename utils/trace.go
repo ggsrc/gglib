@@ -1,35 +1,28 @@
+// Package utils has small tracing helpers.
+//
+// Deprecated: start spans with go.opentelemetry.io/otel directly
+// (otel.Tracer("<your package>").Start). The resource that gglib/otel sets
+// up already carries service.name.
 package utils
 
 import (
 	"context"
 
 	"go.opentelemetry.io/otel"
-	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/ggsrc/gglib/env"
 )
 
-const name = "github.com/ggsrc/app"
+// TracerName is the instrumentation scope of spans started here.
+const TracerName = "github.com/ggsrc/gglib/utils"
 
-var tracer = otel.Tracer(name)
-
-func StartTrace(
-	ctx context.Context,
-	spanName string,
-	opts ...trace.SpanStartOption,
-) (context.Context, trace.Span) {
-	opts = append(opts,
-		trace.WithSpanKind(trace.SpanKindInternal),
-		trace.WithAttributes(
-			semconv.ServiceNameKey.String(env.ServiceName()),
-		),
-	)
-	ctx, span := tracer.Start(ctx, spanName, opts...)
-	return ctx, span
+// StartTrace starts a span with the global tracer provider. The span kind is
+// internal unless opts set another one.
+func StartTrace(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	opts = append([]trace.SpanStartOption{trace.WithSpanKind(trace.SpanKindInternal)}, opts...)
+	return otel.Tracer(TracerName).Start(ctx, spanName, opts...) //nolint:spancheck // the caller ends the span
 }
 
+// BackgroundCtx starts a span named name on a new background context.
 func BackgroundCtx(name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	ctx := context.Background()
-	return StartTrace(ctx, name)
+	return StartTrace(context.Background(), name, opts...)
 }
