@@ -289,25 +289,3 @@ func TestSeverity(t *testing.T) {
 		assert.Equal(t, want, severity(in), in.String())
 	}
 }
-
-// InitLogger is what gglib/app calls today: it keeps the service's own
-// global logger output and only sets the level and the default context
-// logger.
-func TestInitLoggerKeepsServiceLogger(t *testing.T) {
-	restore(t)
-	var buf bytes.Buffer
-	zlog.Logger = zerolog.New(&buf).With().Str("svc", "mine").Logger()
-	proc := &memProcessor{}
-	otel.SetLoggerProvider(sdklog.NewLoggerProvider(sdklog.WithProcessor(proc)))
-
-	InitLogger(true, WithOTLP(true))
-	assert.Equal(t, zerolog.DebugLevel, zerolog.GlobalLevel())
-	zerolog.DefaultContextLogger.Debug().Msg("via default")
-	m := lastJSON(t, &buf)
-	assert.Equal(t, "mine", m["svc"], "the service's logger is the base")
-	assert.Contains(t, m["caller"], "setup_test.go")
-	assert.Len(t, proc.records, 1)
-
-	InitLogger(false)
-	assert.Equal(t, zerolog.InfoLevel, zerolog.GlobalLevel())
-}

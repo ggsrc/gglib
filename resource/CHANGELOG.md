@@ -20,6 +20,10 @@ the last commit before the first release work.
 - **`Stop` stops every resource even when some fail** and returns all errors
   joined. Before, the first error skipped the rest (a failed Redis close
   leaked the database pool and the workers).
+- `Init` can be retried: it continues with the resource that failed instead
+  of initializing the earlier ones again (which failed with "already
+  initialized"). `app.Init` relies on this to retry until the dependencies
+  are reachable.
 - `Start` passes the caller's context to each resource. Before, it passed an
   errgroup context that was canceled as soon as `Start` returned, so any
   background work tied to it stopped at once.

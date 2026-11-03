@@ -29,9 +29,10 @@ type ResourceManager interface {
 }
 
 type resourceManager struct {
-	mu        sync.Mutex
-	resources []Resource
-	stopped   bool
+	mu          sync.Mutex
+	resources   []Resource
+	initialized int // resources[:initialized] have been initialized
+	stopped     bool
 }
 
 // NewResourceManager returns a ResourceManager for resources. Resources are
@@ -67,13 +68,23 @@ func (rm *resourceManager) stopOrder() []Resource {
 	return rs
 }
 
-// Init initializes the resources one by one, in order, and returns the first
-// error, prefixed with the resource name.
+// Init initializes, one by one and in order, the resources that are not
+// initialized yet, and returns the first error, prefixed with the resource
+// name. After a failure, calling Init again continues with the resource that
+// failed, so a resource whose Init can be retried (it keeps no state when it
+// fails) can be retried until it succeeds.
 func (rm *resourceManager) Init(ctx context.Context) error {
-	for _, r := range rm.snapshot() {
+	rm.mu.Lock()
+	done := rm.initialized
+	pending := append([]Resource(nil), rm.resources[done:]...)
+	rm.mu.Unlock()
+	for _, r := range pending {
 		if err := r.Init(ctx); err != nil {
 			return fmt.Errorf("resource %s: init: %w", r.Name(), err)
 		}
+		rm.mu.Lock()
+		rm.initialized++
+		rm.mu.Unlock()
 	}
 	return nil
 }

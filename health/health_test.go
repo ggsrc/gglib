@@ -259,3 +259,59 @@ func TestConstructorsAndStart(t *testing.T) {
 	t.Setenv("HEALTHCHECK_PROBEINTERVAL", "nonsense")
 	assert.Panics(t, func() { New("healthcheck", nil) })
 }
+
+func TestListenServeShutdown(t *testing.T) {
+	conf := testConfig()
+	conf.Port = 0
+	s := newTest(t, conf, &clock{t: time.Unix(1000, 0)}, &dep{})
+	require.NoError(t, s.Shutdown(t.Context()), "nothing to shut down before Serve")
+
+	s = newTest(t, conf, &clock{t: time.Unix(1000, 0)}, &dep{})
+	lis, err := s.Listen(t.Context())
+	require.NoError(t, err)
+	served := make(chan error, 1)
+	go func() { served <- s.Serve(lis) }()
+
+	url := "http://" + lis.Addr().String() + "/health/alive"
+	require.Eventually(t, func() bool {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, nil)
+		require.NoError(t, err)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode == http.StatusOK
+	}, 5*time.Second, 5*time.Millisecond)
+
+	second, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", ":0")
+	require.NoError(t, err)
+	require.EqualError(t, s.Serve(second), "health: already serving")
+
+	require.NoError(t, s.Shutdown(t.Context()))
+	require.ErrorIs(t, <-served, http.ErrServerClosed)
+	select {
+	case <-s.loopDone:
+	default:
+		t.Fatal("Shutdown returned before the check loop stopped")
+	}
+}
+
+// Shutdown waits for a round in progress, but not past its context.
+func TestShutdownBoundedByContext(t *testing.T) {
+	block := make(chan struct{})
+	t.Cleanup(func() { close(block) })
+	conf := testConfig()
+	conf.ProbeTimeout = time.Hour
+	started := make(chan struct{})
+	var once sync.Once
+	s := newTest(t, conf, &clock{t: time.Unix(1000, 0)}, checkFunc(func(context.Context) error {
+		once.Do(func() { close(started) })
+		<-block
+		return nil
+	}))
+	<-started
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
+	defer cancel()
+	require.ErrorIs(t, s.Shutdown(ctx), context.DeadlineExceeded)
+}

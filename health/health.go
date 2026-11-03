@@ -67,8 +67,12 @@ type Server struct {
 
 	httpRouter HttpRouter
 	done       chan struct{}
+	loopDone   chan struct{} // closed when the check loop has returned
 	closeOnce  sync.Once
 	now        func() time.Time
+
+	srvLock sync.Mutex
+	srv     *http.Server
 }
 
 type hook struct {
@@ -98,7 +102,7 @@ func NewWithConfig(conf *Config, httpRouter HttpRouter, hc ...HealthCheckable) *
 }
 
 func newServer(conf *Config, httpRouter HttpRouter, now func() time.Time, hc ...HealthCheckable) *Server {
-	s := &Server{conf: conf, httpRouter: httpRouter, done: make(chan struct{}), now: now}
+	s := &Server{conf: conf, httpRouter: httpRouter, done: make(chan struct{}), loopDone: make(chan struct{}), now: now}
 	for _, h := range hc {
 		s.hooks = append(s.hooks, &hook{check: h.OK})
 	}
@@ -136,21 +140,66 @@ func (s *Server) Stop() { s.stopped.Store(true) }
 // Close stops the background check loop.
 func (s *Server) Close() { s.closeOnce.Do(func() { close(s.done) }) }
 
-// Start serves the probes and blocks until the HTTP server fails.
+// Start serves the probes on the configured port and blocks until the HTTP
+// server fails or Shutdown is called. It is Listen followed by Serve.
 func (s *Server) Start() error {
-	var lc net.ListenConfig
-	lis, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf(":%d", s.conf.Port))
+	lis, err := s.Listen(context.Background())
 	if err != nil {
 		return err
 	}
+	return s.Serve(lis)
+}
+
+// Listen binds the configured port, so that a caller can report a port
+// conflict before serving.
+func (s *Server) Listen(ctx context.Context) (net.Listener, error) {
+	var lc net.ListenConfig
+	lis, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", s.conf.Port))
+	if err != nil {
+		return nil, fmt.Errorf("health: listen: %w", err)
+	}
+	return lis, nil
+}
+
+// Serve serves the probes on lis and blocks until the HTTP server fails or
+// Shutdown is called; after Shutdown it returns http.ErrServerClosed.
+func (s *Server) Serve(lis net.Listener) error {
 	srv := &http.Server{Handler: s.httpRouter, ReadHeaderTimeout: 5 * time.Second}
+	s.srvLock.Lock()
+	if s.srv != nil {
+		s.srvLock.Unlock()
+		_ = lis.Close()
+		return errors.New("health: already serving")
+	}
+	s.srv = srv
+	s.srvLock.Unlock()
 	return srv.Serve(lis)
+}
+
+// Shutdown stops the check loop and serving the probes. It waits, until ctx
+// is done, for the round of checks and the probes in progress to finish.
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.Close()
+	var errs []error
+	select {
+	case <-s.loopDone:
+	case <-ctx.Done():
+		errs = append(errs, fmt.Errorf("health: check loop: %w", ctx.Err()))
+	}
+	s.srvLock.Lock()
+	srv := s.srv
+	s.srvLock.Unlock()
+	if srv != nil {
+		errs = append(errs, srv.Shutdown(ctx))
+	}
+	return errors.Join(errs...)
 }
 
 // Router returns the router the probes are served on.
 func (s *Server) Router() HttpRouter { return s.httpRouter }
 
 func (s *Server) loop() {
+	defer close(s.loopDone)
 	ticker := time.NewTicker(s.conf.ProbeInterval)
 	defer ticker.Stop()
 	for {

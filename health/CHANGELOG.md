@@ -42,6 +42,10 @@ the last commit before the first release work.
 ### Added
 
 - `Config.StuckAfter`, `NewWithConfig`, `Server.Close`.
+- `Server.Listen`, `Server.Serve` and `Server.Shutdown`, so that a caller
+  can report a port conflict before serving and stop the server; `Start` is
+  `Listen` then `Serve`. `Shutdown` waits for the round of checks in
+  progress, until its context is done.
 
 ### Removed
 

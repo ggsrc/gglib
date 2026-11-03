@@ -277,7 +277,7 @@ func TestSetupTwiceFails(t *testing.T) {
 	cleanEnv(t)
 	setup(t)
 	_, err := Setup(t.Context())
-	require.ErrorContains(t, err, "already called")
+	require.ErrorIs(t, err, ErrAlreadySetup)
 }
 
 func TestResourcePrecedence(t *testing.T) {

@@ -39,12 +39,8 @@ the last commit before the first release work.
   `LoggerOption`). It read zerolog's private buffer by reflection (about 46
   times slower per event) and pulled gRPC and protobuf into the module.
   `WithOTLP(true)` replaces it.
-
-### Deprecated
-
-- `InitLogger`: kept with its previous behavior for gglib/app (sets the
-  level and the default context logger, leaves the service's own logger
-  alone); use `Setup`.
+- `InitLogger`. gglib/app calls `Setup`; no service called `InitLogger`
+  directly.
 
 ### Fixed
 
@@ -52,7 +48,7 @@ the last commit before the first release work.
   context and `zerolog.DefaultContextLogger` unset, it returned a disabled
   logger, so every `log.Ctx(ctx).Error()…` was thrown away; this is what
   happened in alva-gateway (318 call sites) and trex, and in gglib's own
-  panic and error logs before `zerolog.InitLogger` ran. It now falls back to
+  panic and error logs before logging was set up. It now falls back to
   the global logger.
 - `log.Ctx` binds `ctx` to the returned logger, so hooks (for example the
   OTLP bridge) can read the span from the event.

@@ -51,6 +51,8 @@ the last commit before the first release work.
 ### Added
 
 - `DefaultServerPort`.
+- `Server.Listen`, so that a caller can report a port conflict before
+  serving; `Start` is `Listen` then `Serve`.
 - `WithClientMetadataForwarding`, and the request-context interceptor in
   the server stream chain (G3; see the interceptor changelog).
 

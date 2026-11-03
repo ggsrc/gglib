@@ -1,67 +1,64 @@
 package app
 
 import (
-	"github.com/ggsrc/gglib/grpc"
-	"github.com/ggsrc/gglib/resource"
+	"time"
+
+	"github.com/ggsrc/gglib/otel"
+	ggzerolog "github.com/ggsrc/gglib/zerolog"
 )
 
-// Options holds the configuration for the App.
-type Options struct {
-	ServerName      string
-	ServerVersion   string
-	Debug           bool
-	Env             string
-	OTELEnabled     bool
-	OTELDSN         string
-	OTELBatchSize   int
-	GRPCServer      *grpc.Server
-	ResourceManager resource.ResourceManager
+// Option configures New.
+type Option func(*config)
+
+type config struct {
+	serverName, serverVersion string
+	debug                     bool
+	telemetry                 []otel.Option
+	logging                   []ggzerolog.Option
+	shutdownTimeout           time.Duration
 }
 
-// Option is a functional option for configuring the App.
-type Option func(*Options)
+func newConfig(opts []Option) *config {
+	c := &config{shutdownTimeout: DefaultResourceShutDownTimeout}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
+}
 
-// WithServerName sets the server name.
+// WithServerName sets the telemetry service name used when the deployment
+// sets neither SERVICE_NAME nor OTEL_SERVICE_NAME.
 func WithServerName(name string) Option {
-	return func(o *Options) {
-		o.ServerName = name
-	}
+	return func(c *config) { c.serverName = name }
 }
 
-// WithDebug enables or disables debug mode.
+// WithServerVersion sets the telemetry service version used when the
+// deployment sets neither SERVICE_VERSION nor GIT_SHA and the binary carries
+// no VCS revision.
+func WithServerVersion(version string) Option {
+	return func(c *config) { c.serverVersion = version }
+}
+
+// WithDebug sets the log level to debug when debug is true. Otherwise the
+// level comes from LOG_LEVEL (default info); see gglib/zerolog.Setup.
 func WithDebug(debug bool) Option {
-	return func(o *Options) {
-		o.Debug = debug
-	}
+	return func(c *config) { c.debug = debug }
 }
 
-// WithEnv sets the environment (e.g., "development", "staging", "production").
-func WithEnv(env string) Option {
-	return func(o *Options) {
-		o.Env = env
-	}
+// WithTelemetry passes options to gglib/otel.Setup, for example
+// otel.WithRuntimeMetrics(true).
+func WithTelemetry(opts ...otel.Option) Option {
+	return func(c *config) { c.telemetry = append(c.telemetry, opts...) }
 }
 
-// WithOTEL enables OpenTelemetry with the provided DSN.
-func WithOTEL(dsn string, batchSize int, serverVersion string) Option {
-	return func(o *Options) {
-		o.OTELEnabled = true
-		o.OTELDSN = dsn
-		o.OTELBatchSize = batchSize
-		o.ServerVersion = serverVersion
-	}
+// WithLogging passes options to gglib/zerolog.Setup, for example
+// zerolog.WithOTLP(false).
+func WithLogging(opts ...ggzerolog.Option) Option {
+	return func(c *config) { c.logging = append(c.logging, opts...) }
 }
 
-// WithGRPCServer sets the gRPC server.
-func WithGRPCServer(server *grpc.Server) Option {
-	return func(o *Options) {
-		o.GRPCServer = server
-	}
-}
-
-// WithResourceManager sets the resource manager.
-func WithResourceManager(rm resource.ResourceManager) Option {
-	return func(o *Options) {
-		o.ResourceManager = rm
-	}
+// WithShutdownTimeout bounds Stop: the gRPC drain and stopping the resources
+// (default DefaultResourceShutDownTimeout, read when New is called).
+func WithShutdownTimeout(d time.Duration) Option {
+	return func(c *config) { c.shutdownTimeout = d }
 }

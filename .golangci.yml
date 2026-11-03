@@ -163,21 +163,6 @@ linters:
       - path: zerolog/log/ctx\.go
         linters: [forbidigo, zerologlint]
 
-      # ------------------------------------------------------------------
-      # Temporary. Each rule below covers code that changes behavior when it
-      # is fixed, or code that is replaced, and is removed by the module PR
-      # named in its comment (alva-ai/mono-meta#1115, gglib route).
-      # ------------------------------------------------------------------
-
-
-
-      # app: telemetry and logging setup move to the G5 entry point.
-      - path: ^app/app\.go
-        linters: [contextcheck]
-
-
-
-
 formatters:
   enable:
     - gci
