@@ -2,7 +2,7 @@
 
 gglib is a set of small Go modules for building gRPC/HTTP services: application
 lifecycle, gRPC server and client setup, interceptors, logging, tracing,
-metrics, health checks, and wrappers for Postgres, Redis and Hatchet.
+metrics, health checks, and wrappers for Postgres and Redis.
 
 Each directory with a `go.mod` is its own module, versioned and released on its
 own. Depend only on the modules you use.
@@ -13,18 +13,14 @@ own. Depend only on the modules you use.
 |---|---|---|
 | [`app`](app) | Application lifecycle: starts the gRPC, metrics and health servers, handles signals, drains RPCs, then closes resources | grpc, health, metric, resource, zerolog |
 | [`env`](env) | Environment name, host name, service name and build information | — |
-| [`goodns`](goodns) | DNS A-record lookups against a chosen DNS server | — |
 | [`grpc`](grpc) | gRPC server and client constructors with the standard interceptor chain | env, interceptor |
 | [`health`](health) | HTTP liveness and readiness endpoints | — |
-| [`http`](http) | Instrumented HTTP client | env, zerolog |
-| [`interceptor`](interceptor) | gRPC and HTTP interceptors: context propagation, logging, error logging, panic recovery, rate limiting, metadata helpers | mctx, zerolog |
+| [`interceptor`](interceptor) | gRPC interceptors: context propagation, logging, error logging, panic recovery, metadata helpers | mctx, zerolog |
 | [`mctx`](mctx) | Request context values (application context, user, location) | — |
 | [`metric`](metric) | Prometheus metrics server | — |
 | [`otel`](otel) | OpenTelemetry setup for traces, metrics and logs over OTLP | env, zerolog |
-| [`profiling`](profiling) | Continuous profiling with Pyroscope | env |
-| [`resource`](resource) | Shared-resource registry: init, start, stop and health checks | zerolog |
-| [`resource/cache`](resource/cache) | Redis and two-level (Redis + in-memory) cache resources | goodns |
-| [`resource/hatchet`](resource/hatchet) | Hatchet client resource | — |
+| [`resource`](resource) | Shared-resource registry: init, start, stop and health checks | — |
+| [`resource/cache`](resource/cache) | Redis and two-level (Redis + in-memory) cache resources | — |
 | [`resource/wpgx`](resource/wpgx) | Postgres pool resource built on [wpgx](https://github.com/stumble/wpgx) | zerolog |
 | [`utils`](utils) | Tracing helpers | env |
 | [`zerolog`](zerolog) | zerolog setup with trace correlation, and a context-aware `log` package | env |
@@ -50,9 +46,9 @@ go get github.com/ggsrc/gglib/grpc@latest
 
 Release order, lowest first:
 
-1. env, goodns, health, mctx, metric, resource/hatchet
-2. zerolog, utils, profiling, resource/cache
-3. http, interceptor, resource, resource/wpgx, otel
+1. env, health, mctx, metric, resource, resource/cache
+2. zerolog, utils
+3. interceptor, resource/wpgx, otel
 4. grpc
 5. app
 

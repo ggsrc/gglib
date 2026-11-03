@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
-	"go.opentelemetry.io/otel/log/global"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 
 	"github.com/ggsrc/gglib/zerolog/log"
@@ -19,7 +19,7 @@ const (
 
 func configureLogging(ctx context.Context, client *client, conf *config) {
 	if conf.loggerProvider != nil {
-		global.SetLoggerProvider(conf.loggerProvider)
+		otel.SetLoggerProvider(conf.loggerProvider)
 		client.lp = conf.loggerProvider
 		return
 	}
@@ -44,7 +44,7 @@ func configureLogging(ctx context.Context, client *client, conf *config) {
 	}
 
 	provider := sdklog.NewLoggerProvider(opts...)
-	global.SetLoggerProvider(provider)
+	otel.SetLoggerProvider(provider)
 	client.lp = provider
 }
 

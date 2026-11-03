@@ -5,14 +5,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
+	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	mask "github.com/showa-93/go-mask"
-
-	"github.com/ggsrc/gglib/goodns"
 )
 
 func (cache *Cache) buildTLSConfig() *tls.Config {
@@ -78,23 +78,13 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 		}
 		redisClient = redis.NewClient(option)
 	} else {
-		dnsCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		ips, err := goodns.LookupA(dnsCtx, c.Host, true)
-		if err != nil {
-			panic("failed to exec goodns.LookupA: " + err.Error())
-		}
-		for _, ip := range ips {
-			log.Info().Msgf("%s Has A: %s\n", c.Host, ip.String())
-		}
-
-		addrs := make([]string, len(ips))
-		for i, ip := range ips {
-			addrs[i] = fmt.Sprintf("%s:%d", ip.String(), c.Port)
-		}
+		// Pass the host name to go-redis instead of resolving it once here:
+		// the dialer tries every address the name resolves to, and the name is
+		// resolved again on each dial, so sentinel pods that change IP are
+		// still found.
 		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:      "master",
-			SentinelAddrs:   addrs,
+			SentinelAddrs:   []string{net.JoinHostPort(c.Host, strconv.Itoa(c.Port))},
 			Password:        c.Password,
 			PoolSize:        c.PoolSize,
 			ReadTimeout:     c.ReadTimeout,
