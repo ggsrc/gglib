@@ -14,7 +14,7 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Go workspace files (local only; create with `make work`)
+# Go workspace files (not used; modules resolve siblings through replace)
 go.work
 go.work.sum
 

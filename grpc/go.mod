@@ -49,3 +49,11 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261026165753-2ffab32bce7e // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
+
+// Sibling modules in this repository (scripts/replaces.sh).
+replace (
+	github.com/ggsrc/gglib/env => ../env
+	github.com/ggsrc/gglib/interceptor => ../interceptor
+	github.com/ggsrc/gglib/mctx => ../mctx
+	github.com/ggsrc/gglib/zerolog => ../zerolog
+)

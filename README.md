@@ -58,20 +58,50 @@ Every module declares `go 1.27.0`, the oldest Go release gglib supports.
 
 ## Development
 
-Modules are always checked on their own with `GOWORK=off`, so that each
-`go.mod` is complete without a workspace. The Makefile runs a target in every
-module:
+Every module is checked on its own with `GOWORK=off`. Sibling gglib modules
+resolve to the directories in this repository through `replace` directives, so
+a change that spans modules is built and tested as a whole. Consumers ignore
+`replace` and use the versions in `require`, which the release script sets.
+After adding or removing a dependency on another gglib module, run
+`make replaces`.
+
+The Makefile runs a target in every module:
 
 ```sh
 make tidy-check   # go mod tidy -diff
 make build        # go build -mod=readonly ./...
 make vet
 make test         # go test -race
-make lint         # golangci-lint
+make cover        # tests with coverage, checked against .github/coverage.txt
+make lint         # golangci-lint (configuration in .golangci.yml)
+make lint-fix     # golangci-lint --fix
+make vulncheck    # govulncheck
 ```
 
-For changes that span modules, `make work` creates a local `go.work` over all
-modules. `go.work` and `go.work.sum` are not committed.
+CI (`.github/workflows/ci.yml`) runs the same checks per module on every pull
+request and push to `main`, and weekly so that new vulnerability advisories
+show up. `ci-ok` is the single required check. Coverage may not drop below a
+module's floor in `.github/coverage.txt`; raise the floor when you raise
+coverage. Dependabot proposes grouped dependency updates weekly.
+
+## Releasing
+
+Each module has a `CHANGELOG.md`; add entries under `## Unreleased` with every
+change. To release:
+
+1. Rename `## Unreleased` to `## vX.Y.Z - YYYY-MM-DD` in each module being
+   released, through a normal PR.
+2. On an up-to-date `main`, run `scripts/release.sh prepare vX.Y.Z [module...]`.
+   It creates `release/vX.Y.Z`, points the internal requires at the new version,
+   checks that each released module only requires released sibling versions,
+   runs the checks and commits. Push the branch and merge its PR.
+3. On `main` after the merge, run `scripts/release.sh tag vX.Y.Z [module...]`
+   and push the tags it prints.
+4. Run `scripts/release.sh verify vX.Y.Z [module...]` to build the released
+   modules from the module proxy, as a consumer would.
+
+Without a module list, every module is released. Release lower modules first
+when only some modules change (see the release order above).
 
 ## Security
 

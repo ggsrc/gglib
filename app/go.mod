@@ -64,7 +64,6 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.1 // indirect
-	go.yaml.in/yaml/v2 v2.4.5 // indirect
 	golang.org/x/arch v0.32.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
@@ -73,4 +72,16 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20261026165753-2ffab32bce7e // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261026165753-2ffab32bce7e // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
+)
+
+// Sibling modules in this repository (scripts/replaces.sh).
+replace (
+	github.com/ggsrc/gglib/env => ../env
+	github.com/ggsrc/gglib/grpc => ../grpc
+	github.com/ggsrc/gglib/health => ../health
+	github.com/ggsrc/gglib/interceptor => ../interceptor
+	github.com/ggsrc/gglib/mctx => ../mctx
+	github.com/ggsrc/gglib/metric => ../metric
+	github.com/ggsrc/gglib/resource => ../resource
+	github.com/ggsrc/gglib/zerolog => ../zerolog
 )

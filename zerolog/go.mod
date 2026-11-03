@@ -36,3 +36,6 @@ require (
 	google.golang.org/grpc v1.85.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
+
+// Sibling modules in this repository (scripts/replaces.sh).
+replace github.com/ggsrc/gglib/env => ../env
