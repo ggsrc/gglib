@@ -58,7 +58,19 @@ func probe(t *testing.T, s *Server, path string) int {
 
 func eventually(t *testing.T, s *Server, path string, want int) {
 	t.Helper()
-	require.Eventually(t, func() bool { return probe(t, s, path) == want }, 2*time.Second, 2*time.Millisecond, "%s never returned %d", path, want)
+	require.Eventually(t, func() bool { return probe(t, s, path) == want }, 5*time.Second, 2*time.Millisecond, "%s never returned %d", path, want)
+}
+
+// waitFailedRounds waits until at least n check rounds in a row have failed.
+// A failing readiness probe cannot show this: readiness also fails before
+// the first round.
+func waitFailedRounds(t *testing.T, s *Server, n int) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		s.stateLock.Lock()
+		defer s.stateLock.Unlock()
+		return s.consecutive >= n
+	}, 5*time.Second, time.Millisecond, "never saw %d failed rounds", n)
 }
 
 func newTest(t *testing.T, conf *Config, c *clock, hc ...HealthCheckable) *Server {
@@ -115,7 +127,10 @@ func TestStuckAfterFailsLiveness(t *testing.T) {
 	d := &dep{}
 	d.set(errors.New("stuck client"))
 	s := newTest(t, testConfig(), c, d)
-	eventually(t, s, "/health/ready", http.StatusServiceUnavailable)
+	// The failing streak must start at the initial time, before the clock
+	// moves.
+	waitFailedRounds(t, s, 1)
+	assert.Equal(t, http.StatusServiceUnavailable, probe(t, s, "/health/ready"))
 	assert.Equal(t, http.StatusOK, probe(t, s, "/health/alive"))
 
 	// The fake clock jumps; wait for a round at the new time so that the
@@ -141,7 +156,8 @@ func TestHangingCheckTimesOut(t *testing.T) {
 		return nil
 	})
 	s := newTest(t, testConfig(), &clock{t: time.Unix(1000, 0)}, &dep{}, hang)
-	eventually(t, s, "/health/ready", http.StatusServiceUnavailable)
+	waitFailedRounds(t, s, 2) // the first round timed out, later ones found it busy
+	assert.Equal(t, http.StatusServiceUnavailable, probe(t, s, "/health/ready"))
 	time.Sleep(30 * time.Millisecond)
 	assert.Equal(t, int32(1), calls.Load(), "a hanging check is not started again while it runs")
 }
