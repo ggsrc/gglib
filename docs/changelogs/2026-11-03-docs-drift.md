@@ -36,4 +36,4 @@ code.
 
 ## 5. Outcome
 
-- [ ] CI green; merged.
+- [x] CI green (run 41729749574, `ci-ok` passed); merged.
