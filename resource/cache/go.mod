@@ -1,10 +1,10 @@
 module github.com/ggsrc/gglib/resource/cache
 
-go 1.24.7
+go 1.27.0
 
 require (
 	github.com/coocood/freecache v1.2.4
-	github.com/ggsrc/gglib/goodns v0.0.0-20250921140246-d7f8c73e78e6
+	github.com/ggsrc/gglib/goodns v0.0.0-20261013145132-b474e434e730
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/extra/redisotel/v9 v9.14.0

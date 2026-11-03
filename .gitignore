@@ -14,8 +14,9 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Go workspace file
+# Go workspace files (local only; create with `make work`)
 go.work
+go.work.sum
 
 # IDE files
 .vscode/

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/uptrace/uptrace-go/uptrace"
 	"go.opentelemetry.io/otel/trace"
 
 	otelzerolog "github.com/ggsrc/gglib/zerolog"
@@ -12,7 +11,6 @@ import (
 )
 
 func TestLog(t *testing.T) {
-	uptrace.ConfigureOpentelemetry()
 	otelzerolog.InitLogger(true)
 	traceID, err := trace.TraceIDFromHex("17d023447a330049126f26a9996249c0")
 	assert.NoError(t, err)
