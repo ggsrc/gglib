@@ -25,11 +25,13 @@ the last commit before the first release work.
     `LOG_FORMAT=json|console` or `WithFormat` override; color only locally;
   - `trace_id` and `span_id` on every event whose context holds a span;
     caller field; millisecond timestamps; stack traces for errors;
-  - `WithOTLP(true)` also sends each record (level, message, trace context)
-    to the global OpenTelemetry logger provider, through the official API.
-    Off by default (`DefaultOTLP`, decision G11).
-  Defaults follow the G9 and G11 recommendations; if decided otherwise,
-  only `FormatAuto` and `DefaultOTLP` change.
+  - each record also goes to the global OpenTelemetry logger provider, with
+    its message, level, time, `trace_id`/`span_id` as the record's trace
+    context, and every other field as an attribute. On by default
+    (`DefaultOTLP`, decision G11); `WithOTLP(false)` turns it off. Records
+    leave the process only when gglib/otel exports logs. Cost: about 5 µs
+    and 24 allocations per line (`BenchmarkOTLPWriter`).
+  JSON in clusters is decision G9.
 
 ### Removed
 

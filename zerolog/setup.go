@@ -28,8 +28,10 @@ const (
 )
 
 // DefaultOTLP is whether Setup sends log records to the OpenTelemetry logger
-// provider by default. Off: logs reach Loki through stdout (decision G11).
-const DefaultOTLP = false
+// provider by default. On (decision G11): a trace in Uptrace shows its log
+// records. Nothing leaves the process unless gglib/otel installs a provider
+// that exports logs; stdout output is unchanged either way.
+const DefaultOTLP = true
 
 // Option configures Setup.
 type Option func(*config)
@@ -57,9 +59,11 @@ func WithWriter(w io.Writer) Option {
 	return func(c *config) { c.writer = w }
 }
 
-// WithOTLP also sends each log record to the global OpenTelemetry logger
-// provider, which gglib/otel installs when its log export is on. The record
-// carries the trace context of the event's context.
+// WithOTLP turns on or off sending each log record to the global
+// OpenTelemetry logger provider (default DefaultOTLP), which gglib/otel
+// installs when its log export is on. The record carries the message, the
+// level, the time, the event's trace_id and span_id as its trace context, and
+// every other field as an attribute.
 func WithOTLP(on bool) Option {
 	return func(c *config) { c.otlp = on }
 }
@@ -79,7 +83,8 @@ func WithoutCaller() Option {
 //   - fields: time (RFC 3339 with milliseconds), level, message, caller,
 //     and trace_id and span_id when the event's context holds a span
 //     (log.Ctx binds it);
-//   - errors logged with Stack() include their stack trace.
+//   - errors logged with Stack() include their stack trace;
+//   - OTLP: see WithOTLP (on by default).
 //
 // Call it once, at the start of main.
 func Setup(opts ...Option) {
@@ -98,14 +103,15 @@ func Setup(opts ...Option) {
 	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.000Z07:00"
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack //nolint:reassign // zerolog is configured through package variables
 
-	ctx := zerolog.New(writerFor(cfg)).Hook(traceHook{}).With().Timestamp()
+	out := writerFor(cfg)
+	if cfg.otlp {
+		out = zerolog.MultiLevelWriter(out, newOTLPWriter())
+	}
+	ctx := zerolog.New(out).Hook(traceHook{}).With().Timestamp()
 	if !cfg.noCaller {
 		ctx = ctx.Caller()
 	}
 	logger := ctx.Logger()
-	if cfg.otlp {
-		logger = logger.Hook(newOTLPHook())
-	}
 
 	log.Logger = logger
 	defaultLogger := logger

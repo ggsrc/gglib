@@ -22,18 +22,25 @@ func (traceHook) Run(e *zerolog.Event, _ zerolog.Level, _ string) {
 	if !sc.IsValid() {
 		return
 	}
-	e.Str("trace_id", sc.TraceID().String()).Str("span_id", sc.SpanID().String())
+	e.Str(traceIDField, sc.TraceID().String()).Str(spanIDField, sc.SpanID().String())
 }
 
+// Field names of the span that an event was logged in.
+const (
+	traceIDField = "trace_id"
+	spanIDField  = "span_id"
+)
+
 // otlpHook sends each event's level and message to the global OpenTelemetry
-// logger provider, with the trace context of the event's context. Fields
-// stay in the stdout line; zerolog hooks cannot read them.
+// logger provider, with the trace context of the event's context. Only
+// InitLogger uses it: it cannot wrap the service's writer, and zerolog hooks
+// cannot read fields. Setup uses otlpWriter, which sends the fields too.
 type otlpHook struct {
 	logger otellog.Logger
 }
 
 func newOTLPHook() otlpHook {
-	return otlpHook{logger: otel.GetLoggerProvider().Logger("github.com/ggsrc/gglib/zerolog")}
+	return otlpHook{logger: otel.GetLoggerProvider().Logger(scopeName)}
 }
 
 func (h otlpHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {

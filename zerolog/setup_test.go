@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/trace"
@@ -153,32 +156,122 @@ func (p *memProcessor) Enabled(context.Context, sdklog.EnabledParameters) bool {
 func (p *memProcessor) Shutdown(context.Context) error                         { return nil }
 func (p *memProcessor) ForceFlush(context.Context) error                       { return nil }
 
-func TestOTLPBridge(t *testing.T) {
-	restore(t)
+func useMemProvider(t *testing.T) *memProcessor {
+	t.Helper()
 	proc := &memProcessor{}
 	otel.SetLoggerProvider(sdklog.NewLoggerProvider(sdklog.WithProcessor(proc)))
+	return proc
+}
+
+func attrs(r sdklog.Record) map[string]attribute.Value {
+	out := map[string]attribute.Value{}
+	r.WalkAttributes(func(kv attribute.KeyValue) bool {
+		out[string(kv.Key)] = kv.Value
+		return true
+	})
+	return out
+}
+
+// G11: records reach OpenTelemetry by default, with their fields.
+func TestOTLPOnByDefaultWithFields(t *testing.T) {
+	restore(t)
+	proc := useMemProvider(t)
 	var buf bytes.Buffer
 	t.Setenv("ENV", "prd")
-	Setup(WithWriter(&buf), WithOTLP(true))
+	Setup(WithWriter(&buf))
 
-	log.Ctx(spanCtx(t)).Warn().Msg("to otlp")
+	log.Ctx(spanCtx(t)).Warn().
+		Str("user_id", "u1").
+		Int64("big", 1<<62).
+		Uint64("huge", 1<<63).
+		Float64("ratio", 0.5).
+		Bool("ok", true).
+		Interface("nested", map[string]any{"a": []int{1, 2}}).
+		Interface("none", nil).
+		Err(errors.New("boom")).
+		Msg("to otlp")
 	require.Len(t, proc.records, 1)
 	r := proc.records[0]
 	assert.Equal(t, "to otlp", r.Body().AsString())
 	assert.Equal(t, otellog.SeverityWarn, r.Severity())
 	assert.Equal(t, "warn", r.SeverityText())
 	assert.Equal(t, "17d023447a330049126f26a9996249c0", r.TraceID().String())
+	assert.Equal(t, "fd1054dfa5132df5", r.SpanID().String())
+	assert.WithinDuration(t, time.Now(), r.Timestamp(), time.Minute)
+	assert.Equal(t, r.Timestamp().Truncate(time.Millisecond), r.Timestamp(), "timestamp parsed from the time field")
+	assert.False(t, r.ObservedTimestamp().IsZero())
+
+	a := attrs(r)
+	assert.Equal(t, "u1", a["user_id"].AsString())
+	assert.Equal(t, int64(1<<62), a["big"].AsInt64())
+	assert.Equal(t, "9223372036854775808", a["huge"].AsString(), "beyond int64: exact, as a string")
+	assert.InDelta(t, 0.5, a["ratio"].AsFloat64(), 0)
+	assert.True(t, a["ok"].AsBool())
+	assert.Equal(t, "boom", a["error"].AsString())
+	assert.Contains(t, a["caller"].AsString(), "setup_test.go")
+	nested := a["nested"].AsMap()
+	require.Len(t, nested, 1)
+	assert.Equal(t, attribute.Key("a"), nested[0].Key)
+	assert.Len(t, nested[0].Value.AsSlice(), 2)
+	assert.Equal(t, attribute.EMPTY, a["none"].Type())
+	for _, k := range []string{"time", "level", "message", "trace_id", "span_id"} {
+		assert.NotContains(t, a, k, "%s is carried by the record itself", k)
+	}
 	assert.Contains(t, buf.String(), "to otlp", "stdout still gets the line")
 }
 
-func TestOTLPOffByDefault(t *testing.T) {
+func TestOTLPInConsoleFormat(t *testing.T) {
 	restore(t)
-	proc := &memProcessor{}
-	otel.SetLoggerProvider(sdklog.NewLoggerProvider(sdklog.WithProcessor(proc)))
+	proc := useMemProvider(t)
 	var buf bytes.Buffer
-	Setup(WithWriter(&buf))
+	Setup(WithWriter(&buf), WithFormat(FormatConsole))
+	zlog.Info().Str("k", "v").Msg("hello")
+	require.Len(t, proc.records, 1)
+	assert.Equal(t, "hello", proc.records[0].Body().AsString())
+	assert.Equal(t, "v", attrs(proc.records[0])["k"].AsString())
+	assert.False(t, proc.records[0].TraceID().IsValid(), "no span, no trace context")
+}
+
+func TestWithOTLPFalse(t *testing.T) {
+	restore(t)
+	proc := useMemProvider(t)
+	var buf bytes.Buffer
+	Setup(WithWriter(&buf), WithOTLP(false))
 	zlog.Info().Msg("stdout only")
 	assert.Empty(t, proc.records)
+	assert.Contains(t, buf.String(), "stdout only")
+}
+
+func TestOTLPWriterEdgeCases(t *testing.T) {
+	restore(t)
+	proc := useMemProvider(t)
+	w := newOTLPWriter()
+
+	n, err := w.Write([]byte("not json\n"))
+	require.NoError(t, err)
+	assert.Equal(t, 9, n)
+	_, err = w.Write([]byte("null\n"))
+	require.NoError(t, err)
+	for _, line := range []string{`{"a"`, `{"a":`, `{"a":[1,`, `{"a":[1`, `{"a":{"b"`, `{"a":{"b":1`, `{"a":{"b":}`, `{"a":1,`} {
+		_, err = w.Write([]byte(line))
+		require.NoError(t, err)
+	}
+	assert.Empty(t, proc.records, "lines that are not complete JSON objects are dropped")
+
+	// Level from the line; unparsable time and bad trace ids are tolerated.
+	_, err = w.Write([]byte(`{"level":"error","time":"yesterday","trace_id":"zz","span_id":"fd1054dfa5132df5","n":1e3}` + "\n"))
+	require.NoError(t, err)
+	_, err = w.Write([]byte(`{"time":12345,"trace_id":"17d023447a330049126f26a9996249c0","span_id":"bad"}` + "\n"))
+	require.NoError(t, err)
+	require.Len(t, proc.records, 2)
+	r := proc.records[0]
+	assert.Equal(t, otellog.SeverityError, r.Severity())
+	assert.False(t, r.TraceID().IsValid())
+	assert.WithinDuration(t, time.Now(), r.Timestamp(), time.Minute)
+	assert.InDelta(t, 1000.0, attrs(r)["n"].AsFloat64(), 0)
+	assert.Equal(t, otellog.SeverityUndefined, proc.records[1].Severity())
+	assert.False(t, proc.records[1].TraceID().IsValid())
+	assert.Equal(t, attribute.EMPTY, proc.records[1].Body().Type(), "no message, no body")
 }
 
 func TestSeverity(t *testing.T) {
