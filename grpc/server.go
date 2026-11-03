@@ -124,14 +124,25 @@ func (s *Server) Server() *grpc.Server {
 }
 
 // Start listens on the configured TCP port and serves until the server is
-// stopped. It returns a non-nil error unless the server was stopped.
+// stopped. It returns a non-nil error unless the server was stopped. It is
+// Listen followed by Serve.
 func (s *Server) Start() error {
-	var lc net.ListenConfig
-	lis, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf(":%d", s.conf.Port))
+	lis, err := s.Listen(context.Background())
 	if err != nil {
 		return err
 	}
 	return s.Serve(lis)
+}
+
+// Listen binds the configured TCP port, so that a caller can report a port
+// conflict before serving.
+func (s *Server) Listen(ctx context.Context) (net.Listener, error) {
+	var lc net.ListenConfig
+	lis, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", s.conf.Port))
+	if err != nil {
+		return nil, fmt.Errorf("grpc: listen: %w", err)
+	}
+	return lis, nil
 }
 
 // Serve accepts incoming connections on the listener lis, creating a new

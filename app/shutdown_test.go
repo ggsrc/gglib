@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/stats"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
@@ -46,6 +47,7 @@ type heldRequest struct {
 	healthpb.UnimplementedHealthServer
 	started    chan struct{}
 	release    chan struct{}
+	finished   chan struct{} // closed when the handler and its interceptors have returned
 	dependency *writableResource
 }
 
@@ -62,6 +64,18 @@ func (h *heldRequest) Check(
 		return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
 	case <-ctx.Done():
 		return nil, status.FromContextError(ctx.Err()).Err()
+	}
+}
+
+// rpcEnd closes done when the RPC has ended, after every interceptor.
+type rpcEnd struct{ done chan struct{} }
+
+func (rpcEnd) TagRPC(ctx context.Context, _ *stats.RPCTagInfo) context.Context   { return ctx }
+func (rpcEnd) TagConn(ctx context.Context, _ *stats.ConnTagInfo) context.Context { return ctx }
+func (rpcEnd) HandleConn(context.Context, stats.ConnStats)                       {}
+func (h rpcEnd) HandleRPC(_ context.Context, s stats.RPCStats) {
+	if _, ok := s.(*stats.End); ok {
+		close(h.done)
 	}
 }
 
@@ -82,9 +96,20 @@ func pendingRPC(t *testing.T) (*App, *heldRequest, *drainingListener, <-chan err
 	handler := &heldRequest{
 		started:    make(chan struct{}),
 		release:    make(chan struct{}),
+		finished:   make(chan struct{}),
 		dependency: dependency,
 	}
-	server := gggrpc.NewServerWithDefaultEnvPrefix()
+	// The interceptors log after the handler returns; wait for them, so that
+	// nothing logs while the next test sets up logging.
+	server := gggrpc.NewServerWithOptions(gggrpc.WithServerGRPCServerOptions(
+		googlegrpc.StatsHandler(rpcEnd{done: handler.finished})))
+	t.Cleanup(func() {
+		select {
+		case <-handler.finished:
+		case <-time.After(5 * time.Second):
+			t.Error("RPC handler did not return")
+		}
+	})
 	healthpb.RegisterHealthServer(server.Server(), handler)
 	listener := &drainingListener{
 		Listener: bufconn.Listen(1024 * 1024),
@@ -114,10 +139,10 @@ func pendingRPC(t *testing.T) (*App, *heldRequest, *drainingListener, <-chan err
 	case <-time.After(3 * time.Second):
 		t.Fatal("RPC did not start")
 	}
-	return &App{
-		grpcServer:      server,
-		resourceManager: resource.NewResourceManager([]resource.Resource{dependency}),
-	}, handler, listener, result
+	application := newApp(t)
+	application.grpc = server
+	application.resources = []resource.ResourceManager{resource.NewResourceManager([]resource.Resource{dependency})}
+	return application, handler, listener, result
 }
 
 func TestStopPreservesDependencyUntilInflightRPCFinishes(t *testing.T) {

@@ -92,6 +92,25 @@ func TestInitStopsAtFirstError(t *testing.T) {
 	assert.Equal(t, []string{"init db", "init cache"}, rec.list())
 }
 
+// A failed Init used to start over from the first resource on the next call,
+// so retrying failed on the resources already initialized.
+func TestInitResumesAfterAFailure(t *testing.T) {
+	rec := &recorder{}
+	fs := newFakes(rec, "db", "cache", "queue")
+	fs[1].initErr = errors.New("unreachable")
+	rm := manager(fs...)
+
+	require.Error(t, rm.Init(t.Context()))
+	fs[1].initErr = nil
+	require.NoError(t, rm.Init(t.Context()))
+	require.NoError(t, rm.Init(t.Context()), "nothing left to initialize")
+	assert.Equal(t, []string{"init db", "init cache", "init cache", "init queue"}, rec.list())
+
+	require.NoError(t, rm.AddResource(&fake{name: "late", rec: rec}))
+	require.NoError(t, rm.Init(t.Context()))
+	assert.Equal(t, "init late", rec.list()[4], "a resource added later is initialized by the next Init")
+}
+
 // Start used to pass an errgroup context that was canceled as soon as Start
 // returned, and ran the resources in parallel.
 func TestStartUsesCallerContext(t *testing.T) {

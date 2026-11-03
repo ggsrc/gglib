@@ -156,29 +156,3 @@ func writerFor(cfg *config) io.Writer {
 	}
 	return cfg.writer
 }
-
-// InitLogger keeps the behavior gglib/app has relied on: it sets the global
-// level to debug or info and makes zerolog.DefaultContextLogger a copy of
-// the existing global logger with a caller field, plus the OpenTelemetry
-// bridge when WithOTLP(true) is given. Unlike Setup, it leaves the global
-// logger's output and format alone.
-//
-// Deprecated: use Setup.
-func InitLogger(debug bool, opts ...Option) {
-	cfg := &config{}
-	for _, opt := range opts {
-		opt(cfg)
-	}
-	if debug {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	} else {
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack //nolint:reassign // zerolog is configured through package variables
-
-	logger := log.With().Caller().Logger()
-	if cfg.otlp {
-		logger = logger.Hook(newOTLPHook())
-	}
-	zerolog.DefaultContextLogger = &logger
-}

@@ -53,12 +53,16 @@ type ShutdownFunc func(context.Context) error
 
 var setupCalled atomic.Bool
 
+// ErrAlreadySetup is returned by Setup when it has already been called in
+// this process.
+var ErrAlreadySetup = errors.New("otel: Setup already called")
+
 // Setup installs the global tracer provider and propagator, and the meter and
 // logger providers when they are turned on, and returns the function that
 // flushes and stops them. It returns an error if called twice in a process.
 func Setup(ctx context.Context, opts ...Option) (ShutdownFunc, error) {
 	if !setupCalled.CompareAndSwap(false, true) {
-		return nil, errors.New("otel: Setup already called")
+		return nil, ErrAlreadySetup
 	}
 	cfg := newConfig(opts)
 

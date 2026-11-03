@@ -46,7 +46,7 @@ interceptor).
   `WithClientMetadataForwarding`; end-to-end test with a real server.
 - `.golangci.yml`: `fatcontext` excluded in tests (contexts captured in test
   closures).
-- `.github/coverage.txt`: interceptor 75.0 → 95.8, grpc 98.8 → 98.9.
+- Coverage floors (`<module>/.coverage-floor`): interceptor 75.0 → 95.8, grpc 98.8 → 98.9.
 
 ## 5. Verification
 

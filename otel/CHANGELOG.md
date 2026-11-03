@@ -36,6 +36,10 @@ the last commit before the first release work.
 - `otel` is a module again (its `go.mod` had been deleted).
 - OpenTelemetry v1.47.
 
+### Added
+
+- `ErrAlreadySetup`, returned by a second `Setup` in the same process.
+
 ### Removed
 
 - The previous API (`ConfigureOpenTelemetry`, `Shutdown`, `ForceFlush`,
