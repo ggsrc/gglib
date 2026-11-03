@@ -12,17 +12,17 @@ own. Depend only on the modules you use.
 | Module | What it provides | Depends on (gglib) |
 |---|---|---|
 | [`app`](app) | Process lifecycle: logging and telemetry, metrics and health servers from the start, resource initialization with retries, an optional gRPC server, and an ordered shutdown | env, grpc, health, metric, otel, resource, zerolog |
-| [`env`](env) | Environment name, host name, service name and build information | — |
-| [`grpc`](grpc) | gRPC server and client constructors with the standard interceptor chain | env, interceptor |
+| [`env`](env) | Environment name (prd, stg, beta, test, local), service name and service version | — |
+| [`grpc`](grpc) | gRPC server and client constructors with the standard interceptor chain | interceptor |
 | [`health`](health) | HTTP liveness and readiness endpoints | — |
-| [`interceptor`](interceptor) | gRPC interceptors: context propagation, logging, error logging, panic recovery, metadata helpers | mctx, zerolog |
-| [`mctx`](mctx) | Request context values (application context, user, location) | — |
+| [`interceptor`](interceptor) | gRPC interceptors: request-context propagation, error logging, panic recovery, request and response bodies in spans, metadata helpers | mctx, zerolog |
+| [`mctx`](mctx) | Request context passed between services: the calling user and the request's common parameters | — |
 | [`metric`](metric) | Prometheus metrics server | — |
 | [`otel`](otel) | OpenTelemetry setup for traces, metrics and logs over OTLP | env |
 | [`resource`](resource) | Shared-resource registry: init, start, stop and health checks | — |
 | [`resource/cache`](resource/cache) | Redis and two-level (Redis + in-memory) cache resources | — |
-| [`resource/wpgx`](resource/wpgx) | Postgres pool resource built on [wpgx](https://github.com/stumble/wpgx) | zerolog |
-| [`utils`](utils) | Tracing helpers | env |
+| [`resource/wpgx`](resource/wpgx) | Postgres pool resource built on [wpgx](https://github.com/stumble/wpgx) | — |
+| [`utils`](utils) | Tracing helpers. Deprecated: start spans with `go.opentelemetry.io/otel` directly | — |
 | [`zerolog`](zerolog) | zerolog setup with trace correlation, and a context-aware `log` package | env |
 
 Install a module with:

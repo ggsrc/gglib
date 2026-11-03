@@ -3,9 +3,10 @@
 // Setup always installs an SDK tracer provider, so spans get real trace ids
 // even when nothing is exported; logs can then carry a trace_id. Export goes
 // over OTLP/HTTP to the endpoint in the standard OTEL_EXPORTER_OTLP_*
-// variables; with no endpoint configured, nothing is exported. Traces are
-// exported by default; metrics and logs only when turned on, because
-// Prometheus (gglib/metric) and stdout logs are the primary pipelines.
+// variables; with no endpoint configured, nothing is exported. Traces and
+// logs are exported by default, so that a trace in Uptrace shows its log
+// records (stdout logs still reach Loki); metrics only when turned on,
+// because dashboards and alerts read Prometheus (gglib/metric).
 //
 // Every service gets the same resource attributes: service.name (from
 // OTEL_SERVICE_NAME or SERVICE_NAME), service.version (SERVICE_VERSION,
