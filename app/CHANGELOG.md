@@ -6,6 +6,10 @@ module is versioned on its own with tags `app/vX.Y.Z`.
 
 ## Unreleased
 
+## v0.1.0 - 2026-11-03
+
+First release of the module on its own.
+
 Changes since `main` at `b474e43` (`v0.0.0-20261013145132-b474e434e730`),
 the last commit before the first release work.
 
