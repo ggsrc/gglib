@@ -23,7 +23,7 @@ func (cache *Cache) buildTLSConfig() *tls.Config {
 
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
-		// nolint: gosec
+		//nolint: gosec
 		InsecureSkipVerify: c.TLSInsecureSkipVerify,
 	}
 
@@ -72,7 +72,7 @@ func (cache *Cache) newRedisClientWithConfig() redis.UniversalClient {
 		if c.IsElastiCache {
 			// Elasticache cert cannot be applied to cname record we use
 			option.TLSConfig = &tls.Config{
-				// nolint: gosec
+				//nolint: gosec
 				InsecureSkipVerify: true,
 			}
 		}

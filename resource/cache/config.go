@@ -2,6 +2,9 @@ package cache
 
 import "time"
 
+// RedisConfig configures the Redis client. Exactly one of the standalone
+// (Host, Port), cluster (IsClusterMode, ClusterAddrs) and Sentinel
+// (IsFailover) modes is used.
 type RedisConfig struct {
 	Host                string        `default:"127.0.0.1"`
 	Port                int           `default:"6379"`
@@ -21,6 +24,7 @@ type RedisConfig struct {
 	TLSCACert             string `default:""`
 }
 
+// DCacheConfig configures the in-memory layer of the dcache.
 type DCacheConfig struct {
 	ReadInterval   time.Duration `default:"500ms"`
 	EnableStats    bool          `default:"true"`

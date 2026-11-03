@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"strings"
@@ -64,7 +65,7 @@ func newConfig(opts []Option) *config {
 
 	if v, ok := os.LookupEnv("OTEL_EXPORTER_OTLP_HEADERS"); ok {
 		var err error
-		for _, header := range strings.Split(v, ",") {
+		for header := range strings.SplitSeq(v, ",") {
 			rawKey, rawVal, found := strings.Cut(header, "=")
 			if !found {
 				err = errors.Join(err, fmt.Errorf("invalid header: %s", header))
@@ -156,9 +157,7 @@ func WithHeaders(headers map[string]string) Option {
 		if conf.headers == nil {
 			conf.headers = map[string]string{}
 		}
-		for k, v := range headers {
-			conf.headers[k] = v
-		}
+		maps.Copy(conf.headers, headers)
 	})
 }
 

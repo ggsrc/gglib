@@ -1,3 +1,4 @@
+// Package log records gRPC request and response bodies as span attributes.
 package log
 
 import (
@@ -11,8 +12,11 @@ import (
 	"github.com/ggsrc/gglib/zerolog/log"
 )
 
+// LogUnaryServerInterceptor records the JSON-encoded request and response as
+// the "grpc.request" and "grpc.response" attributes of the current span, when
+// the span is recording.
 func LogUnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		span := trace.SpanFromContext(ctx)
 		if span.IsRecording() {
 			reqStr, err := sonic.MarshalString(req)

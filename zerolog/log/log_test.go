@@ -3,7 +3,7 @@ package log_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
 
 	otelzerolog "github.com/ggsrc/gglib/zerolog"
@@ -13,9 +13,9 @@ import (
 func TestLog(t *testing.T) {
 	otelzerolog.InitLogger(true)
 	traceID, err := trace.TraceIDFromHex("17d023447a330049126f26a9996249c0")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	spaceID, err := trace.SpanIDFromHex("fd1054dfa5132df5")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ctx := trace.ContextWithSpanContext(t.Context(), trace.NewSpanContext(trace.SpanContextConfig{
 		TraceID:    traceID,
 		SpanID:     spaceID,

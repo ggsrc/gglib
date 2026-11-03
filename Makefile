@@ -27,8 +27,9 @@ test:
 lint:
 	@for m in $(MODULES); do echo "--> lint $$m"; (cd $$m && golangci-lint run) || exit 1; done
 
+# Fixes what it can in every module, then fails if any module still has issues.
 lint-fix:
-	@for m in $(MODULES); do echo "--> lint-fix $$m"; (cd $$m && golangci-lint run --fix) || exit 1; done
+	@status=0; for m in $(MODULES); do echo "--> lint-fix $$m"; (cd $$m && golangci-lint run --fix) || status=1; done; exit $$status
 
 # Local workspace over all modules. Not committed (see .gitignore).
 work:

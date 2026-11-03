@@ -100,7 +100,7 @@ func (c *client) ReportPanic(ctx context.Context, val any) {
 	}
 }
 
-func (c *client) reportPanic(ctx context.Context, val interface{}) {
+func (c *client) reportPanic(ctx context.Context, val any) {
 	span := trace.SpanFromContext(ctx)
 	if !span.IsRecording() {
 		_, span = c.tracer.Start(ctx, dummySpanName)

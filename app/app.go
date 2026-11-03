@@ -1,3 +1,6 @@
+// Package app runs a gRPC service: it starts the gRPC server, the metrics and
+// health servers and the shared resources, and on SIGINT or SIGTERM drains
+// RPCs before stopping the resources.
 package app
 
 import (
@@ -19,8 +22,11 @@ import (
 	"github.com/ggsrc/gglib/zerolog/log"
 )
 
+// DefaultResourceShutDownTimeout bounds how long Stop waits for in-flight
+// RPCs to finish and for resources to stop.
 var DefaultResourceShutDownTimeout = 30 * time.Second
 
+// App is a gRPC service with its metrics server, health server and resources.
 type App struct {
 	options         *Options
 	grpcServer      *grpc.Server
@@ -29,6 +35,8 @@ type App struct {
 	resourceManager resource.ResourceManager
 }
 
+// NewApp returns an App configured by opts. It panics if no gRPC server or no
+// resource manager is given.
 func NewApp(opts ...Option) *App {
 	options := &Options{}
 	for _, opt := range opts {
@@ -53,6 +61,8 @@ func NewApp(opts ...Option) *App {
 	}
 }
 
+// Start sets up telemetry and logging, initializes and starts the resources,
+// starts the servers, and blocks until SIGINT or SIGTERM, then calls Stop.
 func (a *App) Start(ctx context.Context) {
 	if a.options.OTELEnabled {
 		uptrace.ConfigureOpentelemetry(
@@ -72,23 +82,19 @@ func (a *App) Start(ctx context.Context) {
 	grpcErrCh, healthErrCh := make(chan error, 1),
 		make(chan error, 1)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		if a.grpcServer != nil {
 			log.Ctx(ctx).Warn().Msg("GRPC server start")
 			grpcErrCh <- a.grpcServer.Start()
 		}
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		if a.healthChecker != nil {
 			log.Ctx(ctx).Warn().Msg("Health checker start")
 			healthErrCh <- a.healthChecker.Start()
 		}
-	}()
+	})
 
 	if err := a.resourceManager.Start(ctx); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("resource manager error; shutting down")
@@ -115,6 +121,8 @@ func (a *App) Start(ctx context.Context) {
 	}
 }
 
+// Stop drains in-flight RPCs, then stops the resources and the metrics
+// server, within DefaultResourceShutDownTimeout.
 func (a *App) Stop(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, DefaultResourceShutDownTimeout)
 	defer cancel()

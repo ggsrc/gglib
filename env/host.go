@@ -5,9 +5,8 @@ import (
 	"sync"
 )
 
-const (
-	UnknownHostName = "UnknownHost"
-)
+// UnknownHostName is returned by HostName when no host name is set.
+const UnknownHostName = "UnknownHost"
 
 var (
 	hostName    string
@@ -30,12 +29,16 @@ func init() {
 	}
 }
 
+// SetHostName overrides the host name read from HOSTNAME. Only the first call
+// has an effect.
 func SetHostName(name string) {
 	setHostName.Do(func() {
 		hostName = name
 	})
 }
 
+// HostName returns the host name from SetHostName, HOSTNAME or
+// OTEL_HOST_NAME, or UnknownHostName.
 func HostName() string {
 	return hostName
 }

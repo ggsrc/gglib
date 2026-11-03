@@ -1,3 +1,5 @@
+// Package context propagates the request context (mctx.AppContext) between
+// services through gRPC metadata.
 package context
 
 import (
@@ -12,8 +14,12 @@ import (
 	"github.com/ggsrc/gglib/zerolog/log"
 )
 
+// ContextUnaryServerInterceptor restores the AppContext from the incoming
+// "app-ctx-bin" metadata, binds a logger with request_id and user_id to the
+// context, and stores the "metadata" metadata value under
+// metadata.ContextKeyMetadata.
 func ContextUnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		// set request source
 		md := metautils.ExtractIncoming(ctx)
 		appCtxStr := md.Get(pkgmetadata.CTX_KEY_APP_CTX)
@@ -46,8 +52,10 @@ func ContextUnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
+// ContextUnaryClientInterceptor forwards all incoming metadata to the
+// outgoing call. Outgoing metadata set by the caller comes first.
 func ContextUnaryClientInterceptor() grpc.UnaryClientInterceptor {
-	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		md, ok := metadata.FromIncomingContext(ctx)
 		if ok {
 			md = md.Copy()
@@ -64,6 +72,8 @@ func ContextUnaryClientInterceptor() grpc.UnaryClientInterceptor {
 	}
 }
 
+// NewContextWithGRPCMeta returns a new background context that carries the
+// incoming and outgoing gRPC metadata of ctx but not its deadline or values.
 func NewContextWithGRPCMeta(ctx context.Context) context.Context {
 	newCtx := context.Background()
 	md, ok := metadata.FromIncomingContext(ctx)

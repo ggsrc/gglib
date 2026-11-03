@@ -17,12 +17,12 @@ func (w *WPGX) newWPGXPool(ctx context.Context) (*wpgx.Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = pool.Ping(ctx); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		return nil, err
 	}
 	log.Ctx(ctx).Warn().Msg("primary pool is ready")
 	for name, readPool := range pool.ReplicaPools() {
-		if err = readPool.Ping(ctx); err != nil {
+		if err := readPool.Ping(ctx); err != nil {
 			return nil, err
 		}
 		log.Ctx(ctx).Warn().Msgf("Read replica %s is ready", name)

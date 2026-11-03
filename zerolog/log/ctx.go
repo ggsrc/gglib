@@ -1,3 +1,5 @@
+// Package log mirrors github.com/rs/zerolog/log and adds Ctx, which returns
+// the logger stored in a context.
 package log
 
 import (
@@ -8,6 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Ctx returns the logger stored in ctx, or zerolog.DefaultContextLogger, or a
+// disabled logger when neither is set.
 func Ctx(ctx context.Context) *zerolog.Logger {
 	return zerolog.Ctx(ctx)
 }
