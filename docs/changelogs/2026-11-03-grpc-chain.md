@@ -65,7 +65,7 @@ Consumer impact:
   and client over TCP with the gRPC health service).
 - `interceptor/grpc/{recovery,errlog,log}`; `interceptor/grpc/errors`
   deleted; new tests.
-- `.github/coverage.txt`: grpc 0 → 98.8, interceptor 43.8 → 75.0 (the
+- Coverage floors (`<module>/.coverage-floor`): grpc 0 → 98.8, interceptor 43.8 → 75.0 (the
   request-context package is covered by the G3 PR).
 
 ## 5. Verification
