@@ -64,7 +64,6 @@ require (
 	go.opentelemetry.io/proto/otlp v1.11.1 // indirect
 	golang.org/x/arch v0.32.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20261026165753-2ffab32bce7e // indirect

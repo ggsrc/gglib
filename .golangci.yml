@@ -179,10 +179,6 @@ linters:
         linters: [contextcheck]
 
 
-      # resource: the Printf goes away when start errors are logged properly
-      # (resource PR).
-      - path: ^resource/resource\.go
-        linters: [forbidigo]
 
 
 formatters:
