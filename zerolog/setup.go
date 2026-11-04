@@ -21,15 +21,15 @@ const (
 	// where it writes the human-readable console format. LOG_FORMAT=json or
 	// LOG_FORMAT=console overrides it.
 	FormatAuto Format = iota
-	// FormatJSON writes one JSON object per line; Loki indexes its fields.
+	// FormatJSON writes one JSON object per line, for log collectors.
 	FormatJSON
 	// FormatConsole writes human-readable lines.
 	FormatConsole
 )
 
 // DefaultOTLP is whether Setup sends log records to the OpenTelemetry logger
-// provider by default. On (decision G11): a trace in Uptrace shows its log
-// records. Nothing leaves the process unless gglib/otel installs a provider
+// provider by default. On, so that a trace in the tracing backend shows its
+// log records. Nothing leaves the process unless gglib/otel installs a provider
 // that exports logs; stdout output is unchanged either way.
 const DefaultOTLP = true
 

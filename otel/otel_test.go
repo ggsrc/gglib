@@ -118,7 +118,7 @@ func TestTracesExportedWithStandardResource(t *testing.T) {
 	assert.Equal(t, "svc", attrs["service.name"])
 	assert.Equal(t, "abc123", attrs["service.version"])
 	assert.Equal(t, "stg", attrs["deployment.environment.name"])
-	assert.Equal(t, "stg", attrs["deployment.environment"], "kept for Uptrace")
+	assert.Equal(t, "stg", attrs["deployment.environment"], "older attribute kept for backends that read it")
 	assert.Equal(t, "svc-7d9", attrs["k8s.pod.name"])
 	assert.Equal(t, "app", attrs["k8s.namespace.name"])
 	assert.NotEmpty(t, attrs["host.name"])
@@ -140,7 +140,7 @@ func TestDefaultSignalsAreTracesAndLogs(t *testing.T) {
 	otel.GetLoggerProvider().Logger("test").Emit(t.Context(), rec)
 	require.NoError(t, shutdown(t.Context()))
 
-	assert.Equal(t, map[string]int{"/v1/traces": 1, "/v1/logs": 1}, rcv.paths(), "metrics are off by default (G10), logs on (G11)")
+	assert.Equal(t, map[string]int{"/v1/traces": 1, "/v1/logs": 1}, rcv.paths(), "metrics are off by default, logs on")
 }
 
 func TestLogsCanBeTurnedOff(t *testing.T) {

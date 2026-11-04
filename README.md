@@ -1,11 +1,69 @@
 # gglib
 
-gglib is a set of small Go modules for building gRPC/HTTP services: application
-lifecycle, gRPC server and client setup, interceptors, logging, tracing,
-metrics, health checks, and wrappers for Postgres and Redis.
+gglib is a set of small Go modules for building gRPC services. A service's
+`main` usually does three things with it: start the process with `app`, manage
+its database and Redis connections with `resource`, and serve gRPC with `grpc`.
+Logging, tracing, metrics and health checks — the parts every service needs —
+are set up the same way everywhere, so each service does not write its own.
 
-Each directory with a `go.mod` is its own module, versioned and released on its
-own. Depend only on the modules you use.
+- Go 1.27 or later. Apache License 2.0.
+- Each directory with a `go.mod` is its own module, versioned and released on
+  its own. Depend only on the modules you use.
+
+## A complete service
+
+```go
+package main
+
+import (
+	"context"
+	"os"
+
+	"github.com/ggsrc/gglib/app"
+	"github.com/ggsrc/gglib/grpc"
+	"github.com/ggsrc/gglib/resource"
+	"github.com/ggsrc/gglib/resource/cache"
+	"github.com/ggsrc/gglib/resource/wpgx"
+	"github.com/ggsrc/gglib/zerolog/log"
+)
+
+func main() {
+	if err := run(context.Background()); err != nil {
+		log.Error().Err(err).Msg("exiting")
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
+	// 1. Logging, telemetry, the metrics server (:4014) and the health
+	//    server (:8080). The process is now alive but not ready.
+	a, err := app.New(ctx, app.WithServerName("my-service"))
+	if err != nil {
+		return err
+	}
+
+	// 2. Dependencies. Register what others depend on first: shutdown runs
+	//    in reverse order. Init retries until every resource is up.
+	db := wpgx.NewWPGXWithDefaultEnvPrefix()               // POSTGRES_*
+	kv := cache.NewCacheWithDefaultEnvPrefix("my-service") // REDIS_*, DCACHE_*
+	rm := resource.NewResourceManager([]resource.Resource{db, kv})
+	if err := a.Init(ctx, rm); err != nil {
+		return err
+	}
+
+	// 3. Your service (pb is your generated gRPC package, newHandler your
+	//    implementation).
+	srv := grpc.NewServerWithDefaultEnvPrefix() // GRPC_PORT, default 9090
+	pb.RegisterMyServiceServer(srv.Server(), newHandler(db.GetPool(), kv.GetDCache()))
+
+	// 4. Start everything, report ready, block until SIGTERM, shut down in order.
+	return a.Run(ctx, srv, rm)
+}
+```
+
+[docs/lifecycle.md](docs/lifecycle.md) walks through what each step does, how
+the health probes answer at every stage, what happens when a dependency fails,
+and the shutdown order.
 
 ## Modules
 
@@ -13,95 +71,62 @@ own. Depend only on the modules you use.
 |---|---|---|
 | [`app`](app) | Process lifecycle: logging and telemetry, metrics and health servers from the start, resource initialization with retries, an optional gRPC server, and an ordered shutdown | env, grpc, health, metric, otel, resource, zerolog |
 | [`env`](env) | Environment name (prd, stg, beta, test, local), service name and service version | — |
-| [`grpc`](grpc) | gRPC server and client constructors with the standard interceptor chain | interceptor |
-| [`health`](health) | HTTP liveness and readiness endpoints | — |
-| [`interceptor`](interceptor) | gRPC interceptors: request-context propagation, error logging, panic recovery, request and response bodies in spans, metadata helpers | mctx, zerolog |
-| [`mctx`](mctx) | Request context passed between services: the calling user and the request's common parameters | — |
+| [`zerolog`](zerolog) | One-call logging setup (level, format, trace correlation, OpenTelemetry bridge) and a context-aware `log` package | env |
+| [`otel`](otel) | One-call OpenTelemetry setup for traces, logs and (optional) metrics over OTLP/HTTP | env |
 | [`metric`](metric) | Prometheus metrics server | — |
-| [`otel`](otel) | OpenTelemetry setup for traces, metrics and logs over OTLP | env |
-| [`resource`](resource) | Shared-resource registry: init, start, stop and health checks | — |
-| [`resource/cache`](resource/cache) | Redis and two-level (Redis + in-memory) cache resources | — |
-| [`resource/wpgx`](resource/wpgx) | Postgres pool resource built on [wpgx](https://github.com/stumble/wpgx) | — |
+| [`health`](health) | Kubernetes liveness and readiness endpoints driven by background checks | — |
+| [`resource`](resource) | Lifecycle for dependencies: init with resume, ordered start, reverse-order stop, health checks | — |
+| [`resource/wpgx`](resource/wpgx) | Postgres connection pool as a resource, built on [wpgx](https://github.com/stumble/wpgx) | — |
+| [`resource/cache`](resource/cache) | Redis client and two-level (in-memory + Redis) cache as resources | — |
+| [`grpc`](grpc) | gRPC server and client constructors with a standard interceptor chain | interceptor |
+| [`interceptor`](interceptor) | gRPC interceptors: request-context propagation and header forwarding, error logging, panic recovery, request and response bodies in spans, metadata helpers | mctx, zerolog |
+| [`mctx`](mctx) | The request context passed between services: the calling user and the request's common parameters | — |
 | [`utils`](utils) | Tracing helpers. Deprecated: start spans with `go.opentelemetry.io/otel` directly | — |
-| [`zerolog`](zerolog) | zerolog setup with trace correlation, and a context-aware `log` package | env |
 
-Install a module with:
+Each module's README covers its whole API, its configuration and its
+behaviour, including failure cases. The modules form layers; higher layers
+depend only on lower ones:
+
+```text
+5  app
+4  grpc
+3  interceptor   resource/wpgx   otel
+2  zerolog       utils
+1  env   health   mctx   metric   resource   resource/cache
+```
+
+The layers are also the release order. A few modules (utils, resource/wpgx)
+sit above layer 1 for historical reasons and depend on no gglib module.
+
+## Install
 
 ```sh
-go get github.com/ggsrc/gglib/grpc@latest
+go get github.com/ggsrc/gglib/app@latest
+go get github.com/ggsrc/gglib/resource/wpgx@latest
 ```
+
+Every module is tagged on its own as `<module directory>/vX.Y.Z`, for example
+`grpc/v0.1.0` or `resource/wpgx/v0.1.0`. There is no repository-wide tag.
+
+## Documentation
+
+| Topic | |
+|---|---|
+| [Lifecycle of a service](docs/lifecycle.md) | Startup, probes at each stage, failure scenarios, shutdown order, deployment notes |
+| [Logs, metrics and traces](docs/telemetry.md) | What each signal contains, where it leaves the process, what a log line looks like |
+| [Configuration](docs/configuration.md) | Every environment variable a service built with `app` reads |
+| [Migrating to v0.1.0](docs/migrating-to-v0.1.0.md) | Behaviour changes from earlier commits, and removed modules |
+| [Development and releases](docs/development.md) | Local checks, CI, versioning rules and the release procedure |
+
+API reference: [pkg.go.dev/github.com/ggsrc/gglib](https://pkg.go.dev/github.com/ggsrc/gglib).
+Each module's `CHANGELOG.md` lists its changes per release.
 
 ## Versioning
 
-- Every module is tagged on its own as `<module directory>/vX.Y.Z`, for example
-  `grpc/v0.1.0` or `resource/wpgx/v0.1.0`. There are no repository-wide `v*`
-  tags.
-- All modules are at major version 0. A minor bump (`v0.1.0` → `v0.2.0`) may
-  contain breaking changes; a patch bump does not. Behaviour changes are listed
-  in each module's changelog.
-- A pushed tag is never moved or deleted. A bad release is fixed by the next
-  patch release, which `retract`s the bad version in its `go.mod`.
-- When a change spans modules, the lower module is released first, and the
-  higher module then requires that new version.
-
-Release order, lowest first:
-
-1. env, health, mctx, metric, resource, resource/cache
-2. zerolog, utils
-3. interceptor, resource/wpgx, otel
-4. grpc
-5. app
-
-## Go version
-
-Every module declares `go 1.27.0`, the oldest Go release gglib supports.
-
-## Development
-
-Every module is checked on its own with `GOWORK=off`. Sibling gglib modules
-resolve to the directories in this repository through `replace` directives, so
-a change that spans modules is built and tested as a whole. Consumers ignore
-`replace` and use the versions in `require`, which the release script sets.
-After adding or removing a dependency on another gglib module, run
-`make replaces`.
-
-The Makefile runs a target in every module:
-
-```sh
-make tidy-check   # go mod tidy -diff
-make build        # go build -mod=readonly ./...
-make vet
-make test         # go test -race
-make cover        # tests with coverage, checked against <module>/.coverage-floor
-make lint         # golangci-lint (configuration in .golangci.yml)
-make lint-fix     # golangci-lint --fix
-make vulncheck    # govulncheck
-```
-
-CI (`.github/workflows/ci.yml`) runs the same checks per module on every pull
-request and push to `main`, and weekly so that new vulnerability advisories
-show up. `ci-ok` is the single required check. Coverage may not drop below a
-module's floor in `<module>/.coverage-floor`; raise the floor when you raise
-coverage. Dependabot proposes grouped dependency updates weekly.
-
-## Releasing
-
-Each module has a `CHANGELOG.md`; add entries under `## Unreleased` with every
-change. To release:
-
-1. Rename `## Unreleased` to `## vX.Y.Z - YYYY-MM-DD` in each module being
-   released, through a normal PR.
-2. On an up-to-date `main`, run `scripts/release.sh prepare vX.Y.Z [module...]`.
-   It creates `release/vX.Y.Z`, points the internal requires at the new version,
-   checks that each released module only requires released sibling versions,
-   runs the checks and commits. Push the branch and merge its PR.
-3. On `main` after the merge, run `scripts/release.sh tag vX.Y.Z [module...]`
-   and push the tags it prints.
-4. Run `scripts/release.sh verify vX.Y.Z [module...]` to build the released
-   modules from the module proxy, as a consumer would.
-
-Without a module list, every module is released. Release lower modules first
-when only some modules change (see the release order above).
+All modules are at major version 0. A minor bump (`v0.1.0` → `v0.2.0`) may
+contain breaking changes; a patch bump does not. Tags are never moved or
+deleted; a bad release is fixed by the next patch release, which `retract`s it.
+See [docs/development.md](docs/development.md).
 
 ## Security
 

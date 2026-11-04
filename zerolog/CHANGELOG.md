@@ -21,7 +21,7 @@ the last commit before the first release work.
 
 ### Added
 
-- **`Setup(opts...)`: one call configures logging (G5).** It sets the global
+- **`Setup(opts...)`: one call configures logging.** It sets the global
   logger and `zerolog.DefaultContextLogger`:
   - one level knob: `WithLevel`, else `LOG_LEVEL`, else the deprecated
     `LOGGER_LEVEL`, else info; applied as the global level;
@@ -32,10 +32,9 @@ the last commit before the first release work.
   - each record also goes to the global OpenTelemetry logger provider, with
     its message, level, time, `trace_id`/`span_id` as the record's trace
     context, and every other field as an attribute. On by default
-    (`DefaultOTLP`, decision G11); `WithOTLP(false)` turns it off. Records
+    (`DefaultOTLP`); `WithOTLP(false)` turns it off. Records
     leave the process only when gglib/otel exports logs. Cost: about 5 µs
     and 24 allocations per line (`BenchmarkOTLPWriter`).
-  JSON in clusters is decision G9.
 
 ### Removed
 
@@ -50,14 +49,13 @@ the last commit before the first release work.
 
 - **`log.Ctx` no longer drops events silently.** With no logger in the
   context and `zerolog.DefaultContextLogger` unset, it returned a disabled
-  logger, so every `log.Ctx(ctx).Error()…` was thrown away; this is what
-  happened in alva-gateway (318 call sites) and trex, and in gglib's own
-  panic and error logs before logging was set up. It now falls back to
+  logger, so every `log.Ctx(ctx).Error()…` was thrown away, including
+  gglib's own panic and error logs before logging was set up. It now falls back to
   the global logger.
 - `log.Ctx` binds `ctx` to the returned logger, so hooks (for example the
   OTLP bridge) can read the span from the event.
 
 ### Changed
 
-- `zerolog/log` tests no longer need Uptrace variables.
+- `zerolog/log` tests no longer need tracing-exporter variables.
 - Every exported identifier is documented.

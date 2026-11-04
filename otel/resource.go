@@ -71,7 +71,7 @@ func newResource(ctx context.Context, cfg *config) (*resource.Resource, error) {
 }
 
 // environmentAttrs sets the current semantic-convention name and the older
-// deployment.environment, which Uptrace pins as a project attribute.
+// deployment.environment, which some backends still read.
 func environmentAttrs(e string) []attribute.KeyValue {
 	return []attribute.KeyValue{
 		attribute.String("deployment.environment.name", e),

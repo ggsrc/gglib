@@ -40,7 +40,7 @@ the last commit before the first release work.
 ### Changed
 
 - **Request and response bodies are recorded in spans only with
-  `WithServerDebug(true)` (G6).** Before, they were recorded whenever `ENV`
+  `WithServerDebug(true)`.** Before, they were recorded whenever `ENV`
   was not exactly `prd`, including staging, with passwords and tokens.
   Bodies are cut at 4 KiB.
 - The client no longer falls back to a disabled logger when
@@ -58,7 +58,7 @@ the last commit before the first release work.
 - `Server.Listen`, so that a caller can report a port conflict before
   serving; `Start` is `Listen` then `Serve`.
 - `WithClientMetadataForwarding`, and the request-context interceptor in
-  the server stream chain (G3; see the interceptor changelog).
+  the server stream chain (see the interceptor changelog).
 
 ### Removed
 
@@ -66,5 +66,5 @@ the last commit before the first release work.
 - `InterceptorLogger` is no longer exported.
 - `GetCredIDsFromFormula`, `GetDeviceType`, `DeviceType` and its constants,
   `GetIPFromRequest` (trusted `X-Forwarded-For`), `GetNumericHash`,
-  `GetMetadata`, `CReg`, `NReg`: Alva-specific helpers with no users.
+  `GetMetadata`, `CReg`, `NReg`: application-specific helpers with no users.
 - Every exported identifier is documented.

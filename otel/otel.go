@@ -4,9 +4,9 @@
 // even when nothing is exported; logs can then carry a trace_id. Export goes
 // over OTLP/HTTP to the endpoint in the standard OTEL_EXPORTER_OTLP_*
 // variables; with no endpoint configured, nothing is exported. Traces and
-// logs are exported by default, so that a trace in Uptrace shows its log
-// records (stdout logs still reach Loki); metrics only when turned on,
-// because dashboards and alerts read Prometheus (gglib/metric).
+// logs are exported by default, so that a trace in the tracing backend shows
+// its log records (standard-error logs are unchanged); metrics only when turned
+// on, because metrics are served for Prometheus by gglib/metric.
 //
 // Every service gets the same resource attributes: service.name (from
 // OTEL_SERVICE_NAME or SERVICE_NAME), service.version (SERVICE_VERSION,
@@ -40,9 +40,9 @@ import (
 )
 
 // Defaults for the signals other than traces. Metrics are off because
-// dashboards, alerts and autoscaling read Prometheus, not OTel metrics
-// (decision G10). Logs are on, so that a trace in Uptrace shows its log
-// records (decision G11); stdout logs still reach Loki as before.
+// metrics are served for Prometheus by gglib/metric. Logs are on, so that a
+// trace in the tracing backend shows its log records; standard-error logs are
+// unchanged.
 const (
 	DefaultMetrics = false
 	DefaultLogs    = true

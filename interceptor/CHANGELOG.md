@@ -21,7 +21,7 @@ the last commit before the first release work.
 
 ### Changed
 
-- **Request-header forwarding (G3).** `ContextUnaryClientInterceptor` no
+- **Request-header forwarding.** `ContextUnaryClientInterceptor` no
   longer adds every incoming header to the outgoing call:
   - a key the caller sets explicitly replaces the incoming value instead of
     being added next to it (every reader takes the first value, so results

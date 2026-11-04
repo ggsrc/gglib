@@ -113,7 +113,7 @@ func TestStringToAppCtxSizeLimit(t *testing.T) {
 	assert.Nil(t, got)
 }
 
-// Fields from the wallet-login era are no longer part of User; a sender that
+// Fields from an earlier login scheme are no longer part of User; a sender that
 // still includes them is accepted and the fields are dropped.
 func TestStringToAppCtxIgnoresRemovedFields(t *testing.T) {
 	t.Parallel()

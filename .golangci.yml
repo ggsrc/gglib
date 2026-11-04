@@ -1,7 +1,7 @@
 # golangci-lint v2 configuration for gglib.
 #
-# gglib is a public, multi-module library that every Alva Go service builds
-# on, so the rules are stricter than for service code: every exported
+# gglib is a public, multi-module library that services build on, so the
+# rules are stricter than for service code: every exported
 # identifier is documented, the library never exits the process or prints to
 # stdout, errors are wrapped with the standard library, and correctness,
 # security and test-style linters are on. Run it per module (`make lint`); the
@@ -124,8 +124,6 @@ linters:
       rules:
         main:
           deny:
-            - pkg: github.com/alva-ai
-              desc: gglib is a public library; Alva-specific code does not belong here
             - pkg: github.com/ggsrc/gopkg
               desc: gopkg is the frozen predecessor; use the gglib module instead
             - pkg: io/ioutil

@@ -103,7 +103,7 @@ type checkFunc func(context.Context) error
 func (f checkFunc) OK(ctx context.Context) error { return f(ctx) }
 
 // A dependency outage used to fail liveness too, restarting every pod at
-// once (G4). Now readiness fails, liveness holds, and both recover.
+// once. Now readiness fails, liveness holds, and both recover.
 func TestDependencyOutageAndRecovery(t *testing.T) {
 	c := &clock{t: time.Unix(1000, 0)}
 	d := &dep{}
@@ -119,7 +119,7 @@ func TestDependencyOutageAndRecovery(t *testing.T) {
 	assert.Equal(t, http.StatusOK, probe(t, s, "/health/alive"))
 }
 
-// G4: if checks keep failing past StuckAfter (for example the dependency is
+// If checks keep failing past StuckAfter (for example the dependency is
 // back but this instance's client never recovers), liveness fails so the pod
 // is restarted.
 func TestStuckAfterFailsLiveness(t *testing.T) {
