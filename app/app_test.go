@@ -302,7 +302,7 @@ func TestStopFlushesTelemetryLast(t *testing.T) {
 }
 
 // The deployment's service name and version win over the options, so that
-// service names in Uptrace do not change.
+// service names in telemetry do not change.
 func TestTelemetryOptionsAreFallbacks(t *testing.T) {
 	for _, k := range []string{"SERVICE_NAME", "OTEL_SERVICE_NAME", "SERVICE_VERSION", "GIT_SHA"} {
 		t.Setenv(k, "")

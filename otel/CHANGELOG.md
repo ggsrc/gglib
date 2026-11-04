@@ -21,17 +21,17 @@ the last commit before the first release work.
 
 ### Changed
 
-- **Rewritten as the single observability entry point (G5).** One call,
+- **Rewritten as the single observability entry point.** One call,
   `otel.Setup(ctx, opts...)`, returns a shutdown function:
   - always installs an SDK tracer provider and the W3C trace-context and
     baggage propagator, so spans have real ids even when nothing is exported;
   - exports over OTLP/HTTP to the endpoint in `OTEL_EXPORTER_OTLP_*`
     (no endpoint, or `OTEL_SDK_DISABLED=true`: nothing is exported);
-  - traces and logs (`WithLogs`, G11) on by default; metrics
-    (`WithMetrics`, G10) off by default; runtime metrics opt-in;
+  - traces and logs (`WithLogs`) on by default; metrics
+    (`WithMetrics`) off by default; runtime metrics opt-in;
   - one resource for every service: `service.name`, `service.version`,
-    `deployment.environment.name` (plus `deployment.environment` for
-    Uptrace), host, and `k8s.pod.name`/`k8s.namespace.name` from
+    `deployment.environment.name` (plus the older `deployment.environment`,
+    which some backends still read), host, and `k8s.pod.name`/`k8s.namespace.name` from
     `POD_NAME`/`POD_NAMESPACE`; `OTEL_RESOURCE_ATTRIBUTES` and options
     override;
   - composable options: sampler (default: SDK, `OTEL_TRACES_SAMPLER`),

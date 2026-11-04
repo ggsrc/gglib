@@ -22,7 +22,7 @@ the last commit before the first release work.
 ### Deprecated
 
 - The whole package: start spans with `otel.Tracer("<your package>")`
-  directly. alfs's cron example is its only user.
+  directly.
 
 ### Fixed
 

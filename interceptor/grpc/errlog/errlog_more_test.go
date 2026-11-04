@@ -54,7 +54,7 @@ func TestContextErrorsUseTheirCodes(t *testing.T) {
 // metadata and turning other detail types into {}.
 func TestDetailsAreLoggedAsProtoJSON(t *testing.T) {
 	st, err := status.New(codes.ResourceExhausted, "quota").WithDetails(
-		&errdetails.ErrorInfo{Reason: "QUOTA", Domain: "alva.ai", Metadata: map[string]string{"limit": "10"}},
+		&errdetails.ErrorInfo{Reason: "QUOTA", Domain: "example.com", Metadata: map[string]string{"limit": "10"}},
 		&errdetails.BadRequest{FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: "name", Description: "empty"}}},
 	)
 	require.NoError(t, err)

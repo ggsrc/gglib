@@ -123,7 +123,7 @@ func New(ctx context.Context, opts ...Option) (*App, error) {
 
 // telemetryOptions passes the server name and version as fallbacks: the
 // deployment's SERVICE_NAME / OTEL_SERVICE_NAME and SERVICE_VERSION / GIT_SHA
-// win, so that service names in Uptrace do not change.
+// win, so that service names in telemetry do not change.
 func telemetryOptions(conf *config) []otel.Option {
 	var opts []otel.Option
 	if conf.serverName != "" && env.ServiceName() == env.UnknownServiceName {

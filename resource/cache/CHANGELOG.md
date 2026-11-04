@@ -41,7 +41,7 @@ the last commit before the first release work.
 
 - `Redis`, a resource with only the Redis client (`NewRedis`,
   `NewRedisWithDefaultEnvPrefix`, `NewRedisWithConfig`, `Client`). Services
-  that only use the client (alva-gateway, stream-relay) no longer need an
+  that only use the client no longer need an
   in-memory cache and a pub/sub subscription.
 - `RedisConfig.MasterName` (default `master`, as before) and
   `RedisConfig.TLSServerName`.

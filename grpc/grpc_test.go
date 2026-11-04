@@ -216,7 +216,7 @@ func serverSpanAttrs(rec *tracetest.SpanRecorder) map[string]string {
 }
 
 // Outside production, request and response bodies used to be recorded in
-// spans by default (G6). Now only WithServerDebug(true) does it.
+// spans by default. Now only WithServerDebug(true) does it.
 func TestBodiesRecordedOnlyWithDebug(t *testing.T) {
 	t.Setenv("ENV", "stg")
 

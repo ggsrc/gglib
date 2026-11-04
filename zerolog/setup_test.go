@@ -172,7 +172,7 @@ func attrs(r sdklog.Record) map[string]attribute.Value {
 	return out
 }
 
-// G11: records reach OpenTelemetry by default, with their fields.
+// Records reach OpenTelemetry by default, with their fields.
 func TestOTLPOnByDefaultWithFields(t *testing.T) {
 	restore(t)
 	proc := useMemProvider(t)
