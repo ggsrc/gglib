@@ -30,5 +30,7 @@ environment-based constructors (`NewServerWithDefaultEnvPrefix`,
 | `GGLIB_GRPC_METADATA_FORWARDING` | empty = log only | [interceptor](../interceptor) | `allowlist`: forward only allowlisted headers. |
 | `POSTGRES_*` | see [resource/wpgx](../resource/wpgx#configuration-prefix-postgres_-defined-by-wpgx) | resource/wpgx | Postgres pool, including replicas. |
 | `REDIS_*`, `DCACHE_*` | see [resource/cache](../resource/cache#configuration) | resource/cache | Redis connection and the in-memory cache. |
+| `DEBUG_PPROF_ENABLED`, `DEBUG_PPROF_ADDR`, `DEBUG_PPROF_TOKEN` | false, `:6060`, empty | [pprof](../pprof) | Profiling server on/off, address and optional token. |
+| `DEBUG_PPROF_CPU_PROFILE_SECONDS`, `DEBUG_PPROF_CPU_PROFILE_MAX_SECONDS` | 10, 10 | pprof | Default and maximum CPU profile length. |
 
 Durations use Go syntax (`5s`, `3m`, `6h`); booleans accept `true`/`false`.
