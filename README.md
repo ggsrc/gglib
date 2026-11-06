@@ -78,6 +78,8 @@ and the shutdown order.
 | [`resource`](resource) | Lifecycle for dependencies: init with resume, ordered start, reverse-order stop, health checks | — |
 | [`resource/wpgx`](resource/wpgx) | Postgres connection pool as a resource, built on [wpgx](https://github.com/stumble/wpgx) | — |
 | [`resource/cache`](resource/cache) | Redis client and two-level (in-memory + Redis) cache as resources | — |
+| [`resource/goroutine`](resource/goroutine) | Long-lived background goroutines as a resource: canceled and awaited on shutdown, panics recovered | resource, safego, zerolog |
+| [`safego`](safego) | Goroutines that recover their own panics: fire-and-forget, async results and fan-out groups | zerolog |
 | [`grpc`](grpc) | gRPC server and client constructors with a standard interceptor chain | interceptor |
 | [`interceptor`](interceptor) | gRPC interceptors: request-context propagation and header forwarding, error logging, panic recovery, request and response bodies in spans, metadata helpers | mctx, zerolog |
 | [`mctx`](mctx) | The request context passed between services: the calling user and the request's common parameters | — |
@@ -89,8 +91,8 @@ depend only on lower ones:
 
 ```text
 5  app
-4  grpc
-3  interceptor   resource/wpgx   otel
+4  grpc          resource/goroutine
+3  interceptor   resource/wpgx   otel   safego
 2  zerolog       utils
 1  env   health   mctx   metric   resource   resource/cache
 ```

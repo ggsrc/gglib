@@ -30,7 +30,7 @@ All modules require Go 1.27.
 | `http`, `interceptor/http` | No users. They recorded whole requests, including URLs with passwords, in spans and trusted `X-Forwarded-For` blindly. |
 | `profiling` | No users. Its configuration merge always failed, so its configuration never took effect. |
 | `resource/hatchet` | Built on a deprecated SDK with 12 reachable vulnerabilities. Use the Hatchet SDK directly. |
-| `resource/goroutine` | No users. |
+| `resource/goroutine` | Left out of `resource` v0.1.0. It is back as its own module, [resource/goroutine](../resource/goroutine), with the same import path and API: `go get github.com/ggsrc/gglib/resource/goroutine@latest`. |
 | `interceptor/grpc/ratelimit` | No users; every constructor panicked. |
 | `interceptor/grpc/errors` | Its error types were not produced anywhere; `errlog` now logs standard gRPC status details. |
 | `metric.RecordEvent` | Wrote to an unsynchronized map concurrently and could crash the process. |

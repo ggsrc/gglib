@@ -16,7 +16,9 @@ updates:
       - "/otel"
       - "/resource"
       - "/resource/cache"
+      - "/resource/goroutine"
       - "/resource/wpgx"
+      - "/safego"
       - "/utils"
       - "/zerolog"
     schedule:

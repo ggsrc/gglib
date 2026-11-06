@@ -33,7 +33,7 @@ coverage.
 
 | Module | Floor | Module | Floor |
 |---|---|---|---|
-| env, mctx, metric, resource, resource/wpgx, utils | 100.0 | health | 98.0 |
+| env, mctx, metric, resource, resource/goroutine, resource/wpgx, safego, utils | 100.0 | health | 98.0 |
 | grpc | 98.9 | resource/cache | 97.9 |
 | zerolog | 97.5 | app | 96.0 |
 | interceptor | 95.8 | otel | 90.0 |
@@ -61,8 +61,8 @@ Release order, lowest first:
 
 1. env, health, mctx, metric, resource, resource/cache
 2. zerolog, utils
-3. interceptor, resource/wpgx, otel
-4. grpc
+3. interceptor, resource/wpgx, otel, safego
+4. grpc, resource/goroutine
 5. app
 
 ## Releasing
