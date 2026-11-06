@@ -7,7 +7,8 @@ go get github.com/ggsrc/gglib/resource
 A small lifecycle for dependencies with a start and an end — connection
 pools, caches, background workers: initialize them together, start them
 together, check their health, and stop them in the right order.
-[resource/wpgx](wpgx) and [resource/cache](cache) are resources;
+[resource/wpgx](wpgx), [resource/cache](cache) and
+[resource/goroutine](goroutine) are resources;
 [app](../app) drives a `ResourceManager`.
 
 ## The Resource interface
@@ -74,4 +75,5 @@ func (w *Worker) OK(ctx context.Context) error { return nil }
 
 - [app](../app) — `Init` retries the manager's `Init` with backoff; `Run`
   starts it and adds `OK` to the health checks.
-- [resource/wpgx](wpgx), [resource/cache](cache) — the resources gglib ships.
+- [resource/wpgx](wpgx), [resource/cache](cache), [resource/goroutine](goroutine) — the
+  resources gglib ships.
