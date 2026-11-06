@@ -6,6 +6,8 @@ module is versioned on its own with tags `pprof/vX.Y.Z`.
 
 ## Unreleased
 
+## v0.1.0 - 2026-11-06
+
 ### Added
 
 - First release: a guarded profiling server with goroutine, heap and bounded

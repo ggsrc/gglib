@@ -6,6 +6,8 @@ module is versioned on its own with tags `ratelimit/vX.Y.Z`.
 
 ## Unreleased
 
+## v0.1.0 - 2026-11-06
+
 ### Added
 
 - First release: `Limiter` with `Allow` and `Reset`, `Decision`, and the

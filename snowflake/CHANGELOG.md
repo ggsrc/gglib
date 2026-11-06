@@ -6,6 +6,8 @@ module is versioned on its own with tags `snowflake/vX.Y.Z`.
 
 ## Unreleased
 
+## v0.1.0 - 2026-11-06
+
 ### Added
 
 - First release: `NewNode` takes a node number from a Redis counter
