@@ -80,6 +80,9 @@ and the shutdown order.
 | [`resource/cache`](resource/cache) | Redis client and two-level (in-memory + Redis) cache as resources | — |
 | [`resource/goroutine`](resource/goroutine) | Long-lived background goroutines as a resource: canceled and awaited on shutdown, panics recovered | resource, safego, zerolog |
 | [`safego`](safego) | Goroutines that recover their own panics: fire-and-forget, async results and fan-out groups | zerolog |
+| [`ratelimit`](ratelimit) | Redis-backed per-key rate limiting (GCRA): admit or reject, with the exact retry-after | — |
+| [`snowflake`](snowflake) | Unique 64-bit IDs, with each process's node number taken from a Redis counter | — |
+| [`pprof`](pprof) | Guarded on-demand profiling server: goroutine, heap and bounded CPU profiles, off by default | — |
 | [`grpc`](grpc) | gRPC server and client constructors with a standard interceptor chain | interceptor |
 | [`interceptor`](interceptor) | gRPC interceptors: request-context propagation and header forwarding, error logging, panic recovery, request and response bodies in spans, metadata helpers | mctx, zerolog |
 | [`mctx`](mctx) | The request context passed between services: the calling user and the request's common parameters | — |
@@ -95,6 +98,7 @@ depend only on lower ones:
 3  interceptor   resource/wpgx   otel   safego
 2  zerolog       utils
 1  env   health   mctx   metric   resource   resource/cache
+   ratelimit   snowflake   pprof
 ```
 
 The layers are also the release order. A few modules (utils, resource/wpgx)
