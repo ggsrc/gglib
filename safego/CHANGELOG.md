@@ -6,6 +6,8 @@ module is versioned on its own with tags `safego/vX.Y.Z`.
 
 ## Unreleased
 
+## v0.1.0 - 2026-11-07
+
 First release.
 
 ### Added

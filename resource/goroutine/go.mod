@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/ggsrc/gglib/resource v0.1.0
-	github.com/ggsrc/gglib/safego v0.0.0-00010101000000-000000000000
+	github.com/ggsrc/gglib/safego v0.1.0
 	github.com/ggsrc/gglib/zerolog v0.1.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
