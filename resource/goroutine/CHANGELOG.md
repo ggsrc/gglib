@@ -6,6 +6,8 @@ the module is versioned on its own with tags `resource/goroutine/vX.Y.Z`.
 
 ## Unreleased
 
+## v0.1.0 - 2026-11-07
+
 First release as its own module. The package was part of
 `github.com/ggsrc/gglib/resource` until `main` at `b474e43`
 (`v0.0.0-20261013145132-b474e434e730`) and was left out of `resource/v0.1.0`.
