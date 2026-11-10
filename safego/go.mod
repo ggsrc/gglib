@@ -6,7 +6,7 @@ require (
 	github.com/ggsrc/gglib/zerolog v0.1.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/sync v0.24.0
+	golang.org/x/sync v0.25.0
 )
 
 require (
